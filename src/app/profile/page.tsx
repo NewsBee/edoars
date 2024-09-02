@@ -2,6 +2,7 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { Metadata } from "next";
 import DefaultLayout from "@/components/Layouts/DefaultLaout";
 import ProfileBox from "@/components/ProfileBox";
+import SettingForm from "@/components/SettingBoxes/SettingClone";
 
 export const metadata: Metadata = {
   title: "Next.js Profile Page | NextAdmin - Next.js Dashboard Kit",
@@ -14,7 +15,9 @@ const Profile = () => {
       <div className="mx-auto w-full max-w-[970px]">
         <Breadcrumb pageName="Profile" />
 
-        <ProfileBox />
+        <SettingForm/>
+        {/* <ProfileBox /> */}
+        
       </div>
     </DefaultLayout>
   );

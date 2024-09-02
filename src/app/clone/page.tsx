@@ -11,16 +11,16 @@ export const metadata: Metadata = {
   // other metadata
 };
 
-const CalendarPage = () => {
+const CloneCalendarPage = () => {
   return (
     <DefaultLayout>
       <div className="mx-auto max-w-7xl">
         <Breadcrumb pageName="Calendar" />
 
-        <CalendarClone   />
+        <CalendarClone />
       </div>
     </DefaultLayout>
   );
 };
 
-export default CalendarPage;
+export default CloneCalendarPage;

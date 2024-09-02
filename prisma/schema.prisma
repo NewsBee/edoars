@@ -1,0 +1,270 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                           Int                           @id @default(autoincrement())
+  name                         String
+  username                     String                        @unique
+  email                        String                        @unique
+  password                     String
+  role                         Role
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  Submissions                  Submission[]
+  Verifications                Verificator[]
+  UserLogs                     ActivityUserLog[]
+  SubmissionLogs               ActivitySubmissionLog[]       @relation("UserActivityLogRelation")
+  SkillGroups                  SkillGroupLecturer[]
+  Notifications                Notification[]
+  Gradings                     Grading[]
+  TitleOffers                  TitleOffer[]
+  Bookings                     TitleBooking[]
+  StudentTypeAccessPermissions StudentTypeAccessPermission[]
+  announcements Announcement[]
+}
+
+model Submission {
+  id             Int                       @id @default(autoincrement())
+  userId         Int
+  typeId         Int
+  title          String
+  description    String
+  documentPath   String
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  Verifications  Verificator[]
+  RequiredFiles  SubmissionRequiredFile[]
+  RequiredValues SubmissionRequiredValue[]
+  Consultations  SubmissionConsultation[]
+  ActivityLogs   ActivitySubmissionLog[]   @relation("SubmissionActivityLogRelation")
+  Grading        Grading[]
+  user           User                      @relation(fields: [userId], references: [id], map: "SubmissionUserId_fkey")
+  type           SubmissionType            @relation(fields: [typeId], references: [id], map: "SubmissionTypeId_fkey")
+}
+
+model SubmissionType {
+  id                           Int                           @id @default(autoincrement())
+  name                         String
+  description                  String
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  Formats                      DocumentFormat[]
+  RequiredFiles                RequiredFile[]
+  RequiredValues               RequiredValue[]
+  Submissions                  Submission[]
+  TypeAccessPermissions        TypeAccessPermission[]
+  StudentTypeAccessPermissions StudentTypeAccessPermission[]
+}
+
+model DocumentFormat {
+  id           Int            @id @default(autoincrement())
+  typeId       Int
+  name         String
+  templatePath String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  type         SubmissionType @relation(fields: [typeId], references: [id], map: "DocumentFormatTypeId_fkey")
+}
+
+model RequiredFile {
+  id                      Int                      @id @default(autoincrement())
+  typeId                  Int
+  fileName                String
+  templatePath            String
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  type                    SubmissionType           @relation(fields: [typeId], references: [id], map: "RequiredFileTypeId_fkey")
+  SubmissionRequiredFiles SubmissionRequiredFile[]
+}
+
+model RequiredValue {
+  id                       Int                       @id @default(autoincrement())
+  typeId                   Int
+  key                      String
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @default(now())
+  type                     SubmissionType            @relation(fields: [typeId], references: [id], map: "RequiredValueTypeId_fkey")
+  SubmissionRequiredValues SubmissionRequiredValue[]
+}
+
+model Verificator {
+  id           Int        @id @default(autoincrement())
+  userId       Int
+  submissionId Int
+  verified     Boolean
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  user         User       @relation(fields: [userId], references: [id], map: "VerificatorUserId_fkey")
+  submission   Submission @relation(fields: [submissionId], references: [id], map: "VerificatorSubmissionId_fkey")
+}
+
+model SubmissionRequiredFile {
+  id             Int          @id @default(autoincrement())
+  submissionId   Int
+  requiredFileId Int
+  path           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  submission     Submission   @relation(fields: [submissionId], references: [id], map: "SubmissionRequiredFileSubmissionId_fkey")
+  requiredFile   RequiredFile @relation(fields: [requiredFileId], references: [id], map: "SubmissionRequiredFileRequiredFileId_fkey")
+}
+
+model SubmissionRequiredValue {
+  id              Int           @id @default(autoincrement())
+  submissionId    Int
+  requiredValueId Int
+  value           String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  submission      Submission    @relation(fields: [submissionId], references: [id], map: "SubmissionRequiredValueSubmissionId_fkey")
+  requiredValue   RequiredValue @relation(fields: [requiredValueId], references: [id], map: "SubmissionRequiredValueRequiredValueId_fkey")
+}
+
+model SubmissionConsultation {
+  id           Int        @id @default(autoincrement())
+  submissionId Int
+  consultation String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  submission   Submission @relation(fields: [submissionId], references: [id], map: "SubmissionConsultationSubmissionId_fkey")
+}
+
+model SkillGroup {
+  id        Int                  @id @default(autoincrement())
+  name      String
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @default(now())
+  lecturers SkillGroupLecturer[]
+}
+
+model SkillGroupLecturer {
+  id           Int        @id @default(autoincrement())
+  skillGroupId Int
+  lecturerId   Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  skillGroup   SkillGroup @relation(fields: [skillGroupId], references: [id], map: "SkillGroupLecturerSkillGroupId_fkey")
+  lecturer     User       @relation(fields: [lecturerId], references: [id], map: "SkillGroupLecturerLecturerId_fkey")
+}
+
+model ActivityUserLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  activity  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], map: "ActivityUserLogUserId_fkey")
+}
+
+model ActivitySubmissionLog {
+  id           Int        @id @default(autoincrement())
+  submissionId Int
+  userId       Int
+  activity     String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now())
+  submission   Submission @relation(fields: [submissionId], references: [id], map: "ActivitySubmissionLogSubmissionId_fkey", name: "SubmissionActivityLogRelation")
+  user         User       @relation(fields: [userId], references: [id], map: "ActivitySubmissionLogUserId_fkey", name: "UserActivityLogRelation")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], map: "NotificationUserId_fkey")
+}
+
+model Grading {
+  id           Int        @id @default(autoincrement())
+  submissionId Int
+  lecturerId   Int
+  grade        Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  submission   Submission @relation(fields: [submissionId], references: [id], map: "GradingSubmissionId_fkey")
+  lecturer     User       @relation(fields: [lecturerId], references: [id], map: "GradingLecturerId_fkey")
+}
+
+model TitleOffer {
+  id            Int            @id @default(autoincrement())
+  userId        Int
+  title         String
+  description   String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], map: "TitleOfferUserId_fkey")
+  TitleBookings TitleBooking[]
+}
+
+model TitleBooking {
+  id        Int        @id @default(autoincrement())
+  offerId   Int
+  studentId Int
+  status    String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  offer     TitleOffer @relation(fields: [offerId], references: [id], map: "TitleBookingOfferId_fkey")
+  student   User       @relation(fields: [studentId], references: [id], map: "TitleBookingStudentId_fkey")
+}
+
+model Announcement {
+  id          Int      @id @default(autoincrement())
+  title       String
+  content     String   // Menyimpan konten pengumuman dalam format HTML
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  postedBy    User     @relation(fields: [postedById], references: [id])
+  postedById  Int
+  postDate    DateTime
+}
+
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  name      String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TemporaryFile {
+  id        Int      @id @default(autoincrement())
+  name      String
+  path      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TypeAccessPermission {
+  id        Int            @id @default(autoincrement())
+  typeId    Int
+  roleId    Role
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  type      SubmissionType @relation(fields: [typeId], references: [id], map: "TypeAccessPermissionTypeId_fkey")
+}
+
+model StudentTypeAccessPermission {
+  id        Int            @id @default(autoincrement())
+  userId    Int
+  typeId    Int
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  user      User           @relation(fields: [userId], references: [id], map: "StudentTypeAccessPermissionUserId_fkey")
+  type      SubmissionType @relation(fields: [typeId], references: [id], map: "StudentTypeAccessPermissionTypeId_fkey")
+}
+
+enum Role {
+  STUDENT
+  SUPERVISOR
+  EXAMINER
+  ADMIN
+}
