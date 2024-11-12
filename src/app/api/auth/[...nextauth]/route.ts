@@ -16,36 +16,61 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: { label: "Username", type: "text", placeholder: "jsmith" },
+        email: { label: "Email", type: "text", placeholder: "jsmith@example.com" },
         password: { label: "Password", type: "password", placeholder: "Password" },
       },
-      async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) return null;
+      async authorize(credentials, req) {
+        // const { rememberMe } = req.body;
 
-        const user = await prismadb.user.findUnique({
-          where: {
-            username: credentials.username,
-          },
-        }) as CustomUser | null;
-
-        if (!user) {
+        
+        if (!credentials?.email || !credentials?.password) {
           return null;
         }
-
-        const passwordMatch = await compare(credentials.password, user.password);
-        if (!passwordMatch) {
+      
+        const appKey = process.env.APP_KEY || "";
+        const secretKey = process.env.SECRET_KEY || "";
+      
+        if (!appKey || !secretKey) {
+          console.error("APP_KEY or SECRET_KEY is not defined");
           return null;
         }
-
-        // Include 'name' in the returned object
-        return {
-          id: user.id.toString(),
-          username: user.username,
-          email: user.email,
-          name: user.name, // Ensure 'name' is included
-          role: user.role,
-        };
-      },
+      
+        try {
+          const response = await fetch("https://api.sevimaplatform.com/siakadcloud/v1/user/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-App-Key": appKey,
+              "X-Secret-Key": secretKey,
+            },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+          });
+      
+          const data = await response.json();
+          console.log("API Response:", data);  // Tambahkan log untuk response
+      
+          if (!response.ok || !data.attributes) {
+            console.error("Failed to login, status code:", response.status);
+            return null;
+          }
+      
+          const user = {
+            id: data.attributes.user_id.toString(),
+            username: data.attributes.nama,
+            email: data.attributes.email,
+            name: data.attributes.nama,
+            role: data.attributes.role[0]?.nama_role || "User",
+          };
+      
+          return user;
+        } catch (error) {
+          console.error("Login error:", error);
+          return null;
+        }
+      }
     }),
   ],
   callbacks: {
@@ -72,8 +97,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Redirect to homepage after successful login
-      return baseUrl;
+      return baseUrl; // Redirect to homepage after successful login
     },
   },
   pages: {
