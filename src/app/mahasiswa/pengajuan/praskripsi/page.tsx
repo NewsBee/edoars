@@ -22,7 +22,7 @@ export default function Praskripsi() {
         } else {
           console.error(
             "Kesalahan saat mengambil data pengajuan:",
-            data.message
+            data.message,
           );
         }
       } catch (error) {
@@ -38,25 +38,21 @@ export default function Praskripsi() {
   // Loading state
   if (loading) {
     return (
-      <DefaultLayout>
-        <div className="flex min-h-screen items-center justify-center">
-          <p className="text-lg text-gray-600">Memuat data...</p>
-        </div>
-      </DefaultLayout>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+      </div>
     );
   }
 
   return (
-    <DefaultLayout>
-      <div className="mx-auto max-w-7xl">
-        <Breadcrumb pageName="Pengajuan Judul" />
-        {/* Render berdasarkan kondisi */}
-        {existingSubmission ? (
-          <ExistingSubmission submission={existingSubmission} />
-        ) : (
-          <ProposalSubmission />
-        )}
-      </div>
-    </DefaultLayout>
+    <div className="mx-auto max-w-7xl">
+      <Breadcrumb pageName="Pengajuan Judul" />
+      {/* Render berdasarkan kondisi */}
+      {existingSubmission ? (
+        <ExistingSubmission submission={existingSubmission} />
+      ) : (
+        <ProposalSubmission />
+      )}
+    </div>
   );
 }

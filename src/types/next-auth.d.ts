@@ -1,22 +1,28 @@
 import NextAuth from "next-auth";
 
 declare module "next-auth" {
+  interface User {
+    id: string;
+    username: string;
+    role: string;
+    email?: string;
+    name?: string;
+    nim?: string;
+    google_drive_folder_id?: string;
+    status?: string;
+  }
+
   interface Session {
     user: {
       id: string;
       username: string;
       role: string;
       email?: string;
-      name?: string; // Include name
+      name?: string;
+      nim?: string;
+      google_drive_folder_id?: string;
+      status?: string;
     };
-  }
-
-  interface User {
-    id: string;
-    username: string;
-    role: string;
-    email?: string;
-    name?: string; // Include name
   }
 }
 
@@ -26,6 +32,9 @@ declare module "next-auth/jwt" {
     username: string;
     role: string;
     email?: string;
-    name?: string; // Include name
+    name?: string;
+    nim?: string;
+    google_drive_folder_id?: string;
+    status?: string;
   }
 }

@@ -1,9 +1,18 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { compare } from "bcryptjs";
 import prismadb from "@/lib/prismadb";
-import { User as CustomUser } from "../../../../types/dbScheme"; // Make sure this includes 'name' field
+
+type User = {
+  id: string;
+  username: string;
+  email?: string;
+  name?: string;
+  role: string;
+  nim?: string;
+  google_drive_folder_id?: string;
+  status?: string;
+};
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prismadb),
@@ -16,61 +25,131 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "text", placeholder: "jsmith@example.com" },
-        password: { label: "Password", type: "password", placeholder: "Password" },
+        email: {
+          label: "Email",
+          type: "text",
+          placeholder: "jsmith@example.com",
+        },
+        password: {
+          label: "Password",
+          type: "password",
+          placeholder: "Password",
+        },
       },
-      async authorize(credentials, req) {
-        // const { rememberMe } = req.body;
-
-        
+      async authorize(credentials): Promise<User | null> {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
-      
+
         const appKey = process.env.APP_KEY || "";
         const secretKey = process.env.SECRET_KEY || "";
-      
+
         if (!appKey || !secretKey) {
           console.error("APP_KEY or SECRET_KEY is not defined");
           return null;
         }
-      
+
+        // Bypass untuk akun testing
+        if (
+          credentials.email === "testadmin@example.com" &&
+          credentials.password === "admin123"
+        ) {
+          return {
+            id: "4",
+            username: "Test Admin",
+            email: "testadmin@example.com",
+            name: "Admin Testing",
+            role: "Admin", // Berikan role Admin
+          } as User;
+        }
+
+        if (
+          credentials.email === "testkaprodi@example.com" &&
+          credentials.password === "kaprodi123"
+        ) {
+          return {
+            id: "9998",
+            username: "Test Kaprodi",
+            email: "testkaprodi@example.com",
+            name: "Kaprodi Testing",
+            role: "Kaprodi", // Berikan role Kaprodi
+          } as User;
+        }
+
         try {
-          const response = await fetch("https://api.sevimaplatform.com/siakadcloud/v1/user/login", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-App-Key": appKey,
-              "X-Secret-Key": secretKey,
+          const response = await fetch(
+            "https://api.sevimaplatform.com/siakadcloud/v1/user/login",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-App-Key": appKey,
+                "X-Secret-Key": secretKey,
+              },
+              body: JSON.stringify({
+                email: credentials.email,
+                password: credentials.password,
+              }),
             },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password,
-            }),
-          });
-      
+          );
+
           const data = await response.json();
-          console.log("API Response:", data);  // Tambahkan log untuk response
-      
+
           if (!response.ok || !data.attributes) {
             console.error("Failed to login, status code:", response.status);
+            console.error("Failed to login, status code:", response);
             return null;
           }
-      
-          const user = {
-            id: data.attributes.user_id.toString(),
-            username: data.attributes.nama,
-            email: data.attributes.email,
-            name: data.attributes.nama,
-            role: data.attributes.role[0]?.nama_role || "User",
+
+          const prisma = prismadb;
+
+          // Sinkronkan data pengguna ke dalam database
+          const upsertUser = await prisma.user.upsert({
+            where: {
+              external_user_id: data.attributes.user_id, // ID dari API eksternal
+            },
+            update: {
+              name: data.attributes.nama,
+              email: data.attributes.email,
+              nim: data.attributes.role[0]?.nim || null,
+              role: data.attributes.role[0]?.nama_role || "User",
+              nama_satker: data.attributes.role[0]?.nama_satker || null,
+              id_satker: data.attributes.role[0]?.id_satker || null,
+              periode_masuk: data.attributes.role[0]?.periode_masuk || null,
+              status: data.attributes.status_aktif || "1",
+            },
+            create: {
+              external_user_id: data.attributes.user_id,
+              name: data.attributes.nama,
+              email: data.attributes.email,
+              nim: data.attributes.role[0]?.nim || null,
+              role: data.attributes.role[0]?.nama_role || "User",
+              nama_satker: data.attributes.role[0]?.nama_satker || null,
+              id_satker: data.attributes.role[0]?.id_satker || null,
+              periode_masuk: data.attributes.role[0]?.periode_masuk || null,
+              status: data.attributes.status_aktif || "1",
+              google_drive_folder_id: null,
+            },
+          });
+
+          const user: User = {
+            id: upsertUser.id.toString(),
+            username: upsertUser.name,
+            email: upsertUser.email,
+            name: upsertUser.name,
+            role: upsertUser.role,
+            nim: upsertUser.nim || undefined,
+            google_drive_folder_id:
+              upsertUser.google_drive_folder_id || undefined,
+            status: upsertUser.status || "1",
           };
-      
+
           return user;
         } catch (error) {
           console.error("Login error:", error);
           return null;
         }
-      }
+      },
     }),
   ],
   callbacks: {
@@ -79,8 +158,11 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.username = user.username;
         token.email = user.email;
-        token.name = user.name; // Include 'name' in token
+        token.name = user.name;
         token.role = user.role;
+        token.nim = user.nim || undefined;
+        token.google_drive_folder_id = user.google_drive_folder_id || undefined;
+        token.status = user.status || "1";
       }
       return token;
     },
@@ -90,8 +172,11 @@ export const authOptions: NextAuthOptions = {
           id: token.id as string,
           username: token.username as string,
           email: token.email as string,
-          name: token.name as string, // Include 'name' in session
+          name: token.name as string,
           role: token.role as string,
+          nim: token.nim,
+          google_drive_folder_id: token.google_drive_folder_id,
+          status: token.status,
         };
       }
       return session;

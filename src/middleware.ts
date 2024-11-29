@@ -20,18 +20,18 @@ export async function middleware(req: NextRequest) {
         return NextResponse.next();
     }
 
-    // Redirect to home if already authenticated and trying to access login page
-    if (token && requestedPage === '/auth/login') { // Ensure this matches your actual login path
-        url.pathname = '/';
-        return NextResponse.redirect(url);
-    }
+    // // Redirect to home if already authenticated and trying to access login page
+    // if (token && requestedPage === '/auth/login') { // Ensure this matches your actual login path
+    //     url.pathname = '/';
+    //     return NextResponse.redirect(url);
+    // }
 
-    // Redirect to login if not authenticated and trying to access protected pages
-    const protectedPages = ['/dashboard', '/pengajuan', '/penawaran', '/pengumuman',];
-    if (!token && protectedPages.some(page => requestedPage.startsWith(page))) {
-        url.pathname = '/auth/login';
-        return NextResponse.redirect(url);
-    }
+    // // Redirect to login if not authenticated and trying to access protected pages
+    // const protectedPages = ['/dashboard', '/pengajuan', '/penawaran', '/pengumuman',];
+    // if (!token && protectedPages.some(page => requestedPage.startsWith(page))) {
+    //     url.pathname = '/auth/login';
+    //     return NextResponse.redirect(url);
+    // }
 
     return NextResponse.next();
 }

@@ -10,6 +10,8 @@ const config: Config = {
   darkMode: "class",
   theme: {
     fontFamily: {
+      inter: ["Inter", "sans-serif"],
+      nunito: ["Nunito", "sans-serif"],
       satoshi: ["Satoshi", "sans-serif"],
     },
     screens: {
@@ -20,6 +22,11 @@ const config: Config = {
     },
     extend: {
       colors: {
+        primaryBlue: "#0855BE",
+        secondaryBlue: "#0ABEF9",
+        greenAccent: "#47FE89",
+        orangeAccent: "#FFB848",
+        redAccent: "#F56060",
         current: "currentColor",
         transparent: "transparent",
         white: "#FFFFFF",

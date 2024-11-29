@@ -15,14 +15,13 @@ interface SidebarProps {
   hasTitle?: boolean; // Tambahkan hasTitle sebagai props
 }
 
-const Sidebar = ({
+const SidebarKaprodi = ({
   sidebarOpen,
   setSidebarOpen,
-  role = "Mahasiswa", // Default role
-  hasTitle = false, // Default kondisi hasTitle
 }: SidebarProps) => {
   const pathname = usePathname();
   const [pageName, setPageName] = useLocalStorage("selectedMenu", "dashboard");
+  const role = "kaprodi"
 
   // Definisi menu untuk setiap role
   const menuGroups = [
@@ -52,7 +51,7 @@ const Sidebar = ({
             </svg>
           ),
           label: "Dashboard",
-          route: role === "Mahasiswa" ? (hasTitle ? "/mahasiswa/dashboard" : "#") : `/${role.toLowerCase()}/dashboard`,
+          route: "/",
         },
         {
           icon: (
@@ -75,36 +74,17 @@ const Sidebar = ({
           children: [
             {
               label: "Pengajuan Judul (Pra TA)",
-              route: role === "Mahasiswa" ? "/mahasiswa/pengajuan/praskripsi" : `/${role.toLowerCase()}/pengajuan`,
+              route: `/${role}/pengajuan/praskripsi`,
             },
             {
               label: "Pengajuan Proposal (Seminar Proposal)",
-              route: role === "Mahasiswa" ? (hasTitle ? "/mahasiswa/pengajuan/proposal" : "#") : `/${role.toLowerCase()}/pengajuan/proposal`,
+              route: `/${role}/pengajuan/proposal`,
             },
             {
               label: "Pengajuan Sidang",
-              route: role === "Mahasiswa" ? (hasTitle ? "/mahasiswa/pengajuan/sidang" : "#") : `/${role.toLowerCase()}/pengajuan/sidang`,
+              route: `/${role}/pengajuan/sidang`,
             },
           ],
-        },
-        {
-          icon: (
-            <svg
-              className="text- fill-current"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M16 2H8C6.9 2 6 2.9 6 4V20C6 21.1 6.9 22 8 22H16C17.1 22 18 21.1 18 20V4C18 2.9 17.1 2 16 2ZM15 17H9V15H15V17ZM15 14H9V12H15V14ZM15 11H9V9H15V11ZM15 8H9V6H15V8Z"
-                fill="currentColor"
-              />
-            </svg>
-          ),
-          label: "Penawaran Judul",
-          route: `/${role.toLowerCase()}/penawaran`,
         },
         {
           icon: (
@@ -123,7 +103,7 @@ const Sidebar = ({
             </svg>
           ),
           label: "Pengumuman",
-          route: `/${role.toLowerCase()}/pengumuman`,
+          route: `/${role}/pengumuman`,
         },
         {
           icon: (
@@ -269,4 +249,4 @@ const Sidebar = ({
   );
 };
 
-export default Sidebar;
+export default SidebarKaprodi;
