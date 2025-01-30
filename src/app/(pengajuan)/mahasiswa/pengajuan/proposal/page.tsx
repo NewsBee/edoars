@@ -5,6 +5,7 @@ import React from "react";
 import UploadPraSkripsi from "@/components/Pengajuan/UploadPraTa";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import StatusProposal from "@/components/Pengajuan/NewStatus";
+import ProposalSubmissionPage from "@/components/Pengajuan/ProposalSubmissionPage";
 
 export const metadata: Metadata = {
   title: "Pengajuan Proposal",
@@ -17,8 +18,9 @@ export default function Proposal() {
       <div className="mx-auto max-w-7xl">
         <Breadcrumb pageName="Pengajuan Proposal" />
 
+        <ProposalSubmissionPage />
         {/* <StatusProposal /> */}
-        <StatusProposal userId={1}/>
+        {/* <StatusProposal/> */}
       </div>
     </>
   );

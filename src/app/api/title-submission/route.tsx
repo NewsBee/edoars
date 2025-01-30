@@ -3,17 +3,22 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
 
-
 export const POST = async (req: Request) => {
   try {
     const session = await getServerSession(authOptions);
 
+    // Pastikan user sudah login dan role-nya Mahasiswa
     if (!session || session.user.role !== "Mahasiswa") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { title, topic, abstract } = body;
+    const formData = await req.formData();
+    const title = formData.get("title")?.toString();
+    const topic = formData.get("topic")?.toString() || null;
+    const abstract = formData.get("abstract")?.toString();
+    const lirsFile = formData.get("lirs") as File | null;
+    const toeflFile = formData.get("toefl") as File | null;
+    const proposalFile = formData.get("proposal") as File | null;
 
     if (!title || !abstract) {
       return NextResponse.json(
@@ -22,7 +27,7 @@ export const POST = async (req: Request) => {
       );
     }
 
-    // Cek apakah mahasiswa sudah memiliki pengajuan judul aktif
+    // Cek apakah mahasiswa sudah memiliki pengajuan aktif
     const existingSubmission = await prismadb.titleSubmission.findFirst({
       where: {
         userId: Number(session.user.id),
@@ -32,30 +37,68 @@ export const POST = async (req: Request) => {
 
     if (existingSubmission) {
       return NextResponse.json(
-        {
-          message: "You already have an active or pending title submission",
-        },
+        { message: "You already have an active or pending title submission" },
         { status: 400 }
       );
     }
 
-    // Buat pengajuan baru terlebih dahulu
+    // Simpan data pengajuan ke database
     const submission = await prismadb.titleSubmission.create({
       data: {
         userId: Number(session.user.id),
         title,
-        topic: topic || null,
+        topic,
         abstract,
         status: "Pending",
       },
     });
 
-    // Setelah pengajuan berhasil dibuat, catat log aktivitas
+    // Simulasi URL dummy untuk file
+    const generateDummyUrl = (filename: string) =>
+      `https://dummy.storage/${submission.id}/${filename}`;
+
+    // Simpan data file ke database dengan URL dummy
+    const uploadedFiles = [];
+    if (lirsFile) {
+      uploadedFiles.push({
+        titleSubmissionId: submission.id,
+        requiredFileId: 1, // LIRS
+        file_url: generateDummyUrl(`LIRS-${submission.id}.pdf`),
+        status: "Pending",
+      });
+    }
+
+    if (toeflFile) {
+      uploadedFiles.push({
+        titleSubmissionId: submission.id,
+        requiredFileId: 2, // TOEFL
+        file_url: generateDummyUrl(`TOEFL-${submission.id}.pdf`),
+        status: "Pending",
+      });
+    }
+
+    if (proposalFile) {
+      uploadedFiles.push({
+        titleSubmissionId: submission.id,
+        requiredFileId: 3, // Proposal
+        file_url: generateDummyUrl(`Proposal-${submission.id}.pdf`),
+        status: "Pending",
+      });
+    }
+
+    // Simpan file ke tabel SubmissionRequiredFile
+    for (const file of uploadedFiles) {
+      await prismadb.submissionRequiredFile.create({
+        data: file,
+      });
+    }
+
+    // Log aktivitas pengajuan
     await prismadb.activitySubmissionLog.create({
       data: {
-        titleSubmissionId: submission.id, // Gunakan kolom titleSubmissionId
+        titleSubmissionId: submission.id,
         userId: Number(session.user.id),
-        activity: "Pengajuan baru dibuat oleh mahasiswa.",
+        activity: "Pengajuan judul baru dibuat.",
       },
     });
 
@@ -68,6 +111,8 @@ export const POST = async (req: Request) => {
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 };
+
+
 
 
 export const GET = async () => {

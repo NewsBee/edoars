@@ -52,7 +52,7 @@ const Sidebar = ({
             </svg>
           ),
           label: "Dashboard",
-          route: role === "Mahasiswa" ? (hasTitle ? "/mahasiswa/dashboard" : "#") : `/${role.toLowerCase()}/dashboard`,
+          route: role === "Mahasiswa" ?  "/mahasiswa/dashboard" : `/${role.toLowerCase()}/dashboard`,
         },
         {
           icon: (

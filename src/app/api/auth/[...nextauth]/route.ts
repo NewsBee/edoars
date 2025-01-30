@@ -55,11 +55,29 @@ export const authOptions: NextAuthOptions = {
           credentials.password === "admin123"
         ) {
           return {
-            id: "4",
+            id: "100",
             username: "Test Admin",
             email: "testadmin@example.com",
             name: "Admin Testing",
             role: "Admin", // Berikan role Admin
+          } as User;
+        }
+
+        // Bypass untuk akun testing mahasiswa
+        if (
+          credentials.email === "teststudent@example.com" &&
+          credentials.password === "student123"
+        ) {
+          return {
+            id: "5",
+            username: "Test Student",
+            email: "teststudent@example.com",
+            name: "Mahasiswa Testing",
+            role: "Mahasiswa", // Berikan role Mahasiswa
+            nim: "123456789", // Nomor Induk Mahasiswa
+            google_drive_folder_id: "test-folder-id", // Dummy Google Drive Folder ID
+            status: "Aktif", // Status Mahasiswa
+            periode_masuk: "2021/2022", // Periode masuk mahasiswa
           } as User;
         }
 
@@ -68,7 +86,7 @@ export const authOptions: NextAuthOptions = {
           credentials.password === "kaprodi123"
         ) {
           return {
-            id: "9998",
+            id: "2000",
             username: "Test Kaprodi",
             email: "testkaprodi@example.com",
             name: "Kaprodi Testing",

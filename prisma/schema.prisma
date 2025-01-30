@@ -39,22 +39,38 @@ model User {
   SentMessages        Message[]                     @relation("UserToMessage")
 }
 
+// model TitleSubmission {
+//   id                  Int               @id @default(autoincrement())
+//   userId              Int               // ID mahasiswa
+//   title               String            // Judul penelitian
+//   topic               String?           // Topik penelitian
+//   abstract            String            @db.Text // Abstrak penelitian
+//   status              String            @default("Pending") // Status pengajuan (Pending, Approved, Rejected)
+//   reason              String?           // Alasan penolakan (jika ditolak)
+//   createdAt           DateTime          @default(now())
+//   updatedAt           DateTime          @default(now())
+
+//   User                User              @relation(fields: [userId], references: [id])
+//   assignedLecturers   AssignedLecturer[] // Relasi dengan pembimbing
+//   activityLogs        ActivitySubmissionLog[] // Relasi dengan log aktivitas
+// }
+
 model TitleSubmission {
-  id                  Int               @id @default(autoincrement())
-  userId              Int               // ID mahasiswa
-  title               String            // Judul penelitian
-  topic               String?           // Topik penelitian
-  abstract            String            @db.Text // Abstrak penelitian
-  status              String            @default("Pending") // Status pengajuan (Pending, Approved, Rejected)
-  reason              String?           // Alasan penolakan (jika ditolak)
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @default(now())
+  id                  Int                     @id @default(autoincrement())
+  userId              Int                     // ID mahasiswa
+  title               String                  // Judul penelitian
+  topic               String?                 // Topik penelitian
+  abstract            String                  @db.Text // Abstrak penelitian
+  status              String                  @default("Pending") // Status pengajuan (Pending, Approved, Rejected)
+  reason              String?                 // Alasan penolakan (jika ditolak)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @default(now())
 
-  User                User              @relation(fields: [userId], references: [id])
-  assignedLecturers   AssignedLecturer[] // Relasi dengan pembimbing
+  User                User                    @relation(fields: [userId], references: [id])
+  assignedLecturers   AssignedLecturer[]      // Relasi dengan pembimbing
   activityLogs        ActivitySubmissionLog[] // Relasi dengan log aktivitas
+  requiredFiles       SubmissionRequiredFile[] @relation(name: "SubmissionRequiredFileToTitleSubmission") // Relasi dengan berkas tambahan
 }
-
 
 model Submission {
   id          Int       @id @default(autoincrement())
@@ -87,6 +103,8 @@ model Type {
   status      String   @default("active") // Status tipe
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  is_primary  Boolean  @default(false) // Format utama
+  is_public   Boolean  @default(false) // Hak akses untuk semua mahasiswa
 
   Submissions        Submission[]
   RequiredFiles      RequiredFile[]
@@ -119,17 +137,32 @@ model RequiredFile {
   SubmissionRequiredFiles SubmissionRequiredFile[]
 }
 
-model SubmissionRequiredFile {
-  id             Int      @id @default(autoincrement())
-  submissionId   Int // ID pengajuan
-  requiredFileId Int // ID file yang dibutuhkan
-  file_url       String? // URL file yang diunggah
-  status         String   @default("Pending") // Status file (Pending, Approved, Rejected)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+// model SubmissionRequiredFile {
+//   id             Int      @id @default(autoincrement())
+//   submissionId   Int // ID pengajuan
+//   requiredFileId Int // ID file yang dibutuhkan
+//   file_url       String? // URL file yang diunggah
+//   status         String   @default("Pending") // Status file (Pending, Approved, Rejected)
+//   createdAt      DateTime @default(now())
+//   updatedAt      DateTime @updatedAt
 
-  Submission   Submission   @relation(fields: [submissionId], references: [id])
-  RequiredFile RequiredFile @relation(fields: [requiredFileId], references: [id])
+//   Submission   Submission   @relation(fields: [submissionId], references: [id])
+//   RequiredFile RequiredFile @relation(fields: [requiredFileId], references: [id])
+// }
+
+model SubmissionRequiredFile {
+  id                Int               @id @default(autoincrement())
+  titleSubmissionId Int?              // ID pengajuan judul (opsional)
+  submissionId      Int?              // ID pengajuan (opsional)
+  requiredFileId    Int               // ID file yang dibutuhkan
+  file_url          String?           // URL file yang diunggah
+  status            String            @default("Pending") // Status file (Pending, Approved, Rejected)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  TitleSubmission   TitleSubmission?  @relation(name: "SubmissionRequiredFileToTitleSubmission", fields: [titleSubmissionId], references: [id]) // Relasi opsional
+  Submission        Submission?       @relation(fields: [submissionId], references: [id]) // Relasi opsional ke Submission
+  RequiredFile      RequiredFile      @relation(fields: [requiredFileId], references: [id])
 }
 
 model AssignedLecturer {

@@ -24,7 +24,8 @@ export default function DetailTitleSubmission({
           throw new Error(errorData.message || "Gagal memuat data pengajuan.");
         }
         const data = await response.json();
-        setSubmission(data.titleSubmission); // Sesuaikan dengan struktur data API
+        console.log(data)
+        setSubmission(data); // Sesuaikan dengan struktur data API
       } catch (err: any) {
         setError(err.message || "Terjadi kesalahan saat memuat data.");
       } finally {

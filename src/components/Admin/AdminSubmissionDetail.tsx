@@ -13,6 +13,13 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [lecturers, setLecturers] = useState([]);
+  const [skillGroups, setSkillGroups] = useState<
+    { id: number; name: string }[]
+  >([]);
+
+  const [allLecturers, setAllLecturers] = useState([]); // Semua dosen dari API
+  const [selectedSkillGroup, setSelectedSkillGroup] = useState(""); // Kelompok keahlian yang dipilih
+
   const [selectedLecturers, setSelectedLecturers] = useState({
     lecturer1: "",
     lecturer2: "",
@@ -23,7 +30,11 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
       try {
         const response = await fetch("/api/lecturers");
         const data = await response.json();
-        setLecturers(data.lecturers || []);
+        console.log("Respons API:", data);
+        setSkillGroups(data.skillGroups || []); // Simpan kelompok keahlian
+        setAllLecturers(data.lecturers || []); // Simpan semua dosen
+        setLecturers(data.lecturers || []); // Awalnya tampilkan semua dosen
+        // setLecturers(data.lecturers || []);
       } catch (error) {
         toast.error("Gagal memuat data dosen.");
       }
@@ -31,6 +42,24 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
 
     fetchLecturers();
   }, []);
+
+  // Filter dosen berdasarkan kelompok keahlian yang dipilih
+  useEffect(() => {
+    if (!selectedSkillGroup) {
+      setLecturers([]); // Jika kelompok keahlian tidak dipilih, kosongkan dosen
+      return;
+    }
+
+    // Filter dosen yang relevan
+    const filteredLecturers = allLecturers.filter((lecturer: any) => {
+      const group = skillGroups.find(
+        (group) => group.id === Number(selectedSkillGroup),
+      );
+      return group ? lecturer.skillGroups.includes(group.name) : false;
+    });
+
+    setLecturers(filteredLecturers);
+  }, [selectedSkillGroup, allLecturers, skillGroups]);
 
   const handleReject = async () => {
     if (!reason) {
@@ -90,7 +119,7 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
       setShowRevertModal(false);
       window.location.reload();
       // router.push('/')
-      router.refresh()
+      router.refresh();
     } catch (error) {
       toast.error("Terjadi kesalahan saat mengembalikan status.");
     }
@@ -129,16 +158,18 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
 
       if (!response.ok) {
         const data = await response.json();
-        toast.error(`Error: ${data.message}`);
-        return;
+        // toast.error(`Error: ${data.message}`);
+        console.log(data);
+        throw new Error(data.message);
+        // return;
       }
 
       toast.success("Pengajuan berhasil disetujui.");
       setShowApproveModal(false);
       window.location.reload();
       // router.push('/')
-    } catch (error) {
-      toast.error("Terjadi kesalahan saat menyetujui.");
+    } catch (error: any) {
+      toast.error(error.message || "Terjadi kesalahan saat menyetujui.");
     }
   };
 
@@ -189,7 +220,7 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
   };
 
   return (
-    <div className="p-6 rounded-lg border border-gray-300 bg-white shadow-sm text-black">
+    <div className="rounded-lg border border-gray-300 bg-white p-6 text-black shadow-sm">
       <ToastContainer position="top-right" autoClose={3000} />
       <h1 className="mb-4 text-2xl font-bold text-black">{submission.title}</h1>
       <div className="space-y-4">
@@ -202,7 +233,7 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
         <p>
           <strong>Topik:</strong> {submission.topic}
         </p>
-        <p className="">
+        <p>
           <strong>Abstrak:</strong> {submission.abstract}
         </p>
         <p>
@@ -219,6 +250,49 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
             {submission.status}
           </span>
         </p>
+
+        {/* Bagian Berkas */}
+        {submission.requiredFiles && submission.requiredFiles.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-lg font-bold text-gray-800">
+              Berkas Mahasiswa:
+            </h3>
+            <ul className="mt-4 space-y-4">
+              {submission.requiredFiles.map((file: any, index: number) => (
+                <li
+                  key={index}
+                  className="flex items-center justify-between rounded-lg border bg-gray-50 p-4 shadow-sm"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      {file.RequiredFile.file_name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Status: {file.status}
+                    </p>
+                  </div>
+                  <div className="flex space-x-4">
+                    <a
+                      href={file.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-md bg-blue-500 px-4 py-2 text-sm text-white shadow hover:bg-blue-600"
+                    >
+                      Preview
+                    </a>
+                    <a
+                      href={file.file_url}
+                      download
+                      className="rounded-md bg-green-500 px-4 py-2 text-sm text-white shadow hover:bg-green-600"
+                    >
+                      Download
+                    </a>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Informasi Dosen Pembimbing */}
         {submission.status === "Approved" && submission.assignedLecturers && (
@@ -311,20 +385,61 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
       {/* Approve Modal */}
       {showApproveModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="rounded bg-white p-6 shadow-lg">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
             <h2 className="text-lg font-bold">Setujui Pengajuan</h2>
             <div className="mt-4 space-y-4">
+              {/* Dropdown untuk Kelompok Keahlian */}
               <div>
-                <label>Dosen Pembimbing 1</label>
+                <label className="mb-1 block font-medium text-gray-700">
+                  Kelompok Keahlian
+                </label>
+                <select
+                  value={selectedSkillGroup}
+                  onChange={(e) => {
+                    const selectedGroupId = e.target.value;
+                    setSelectedSkillGroup(selectedGroupId);
+
+                    // Filter dosen berdasarkan kelompok keahlian yang dipilih
+                    const group = skillGroups.find(
+                      (group) => group.id === Number(selectedGroupId),
+                    );
+                    if (!group) {
+                      setLecturers([]);
+                      return;
+                    }
+
+                    const filteredLecturers = allLecturers.filter(
+                      (lecturer: any) =>
+                        lecturer.skillGroups.includes(group.name),
+                    );
+                    setLecturers(filteredLecturers);
+                  }}
+                  className="w-full rounded-lg border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+                >
+                  <option value="">Pilih Kelompok Keahlian</option>
+                  {skillGroups.map((group: any) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Dropdown untuk Dosen Pembimbing 1 */}
+              <div>
+                <label className="mb-1 block font-medium text-gray-700">
+                  Dosen Pembimbing 1
+                </label>
                 <select
                   value={selectedLecturers.lecturer1}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setSelectedLecturers({
                       ...selectedLecturers,
                       lecturer1: e.target.value,
-                    })
-                  }
-                  className="w-full rounded border p-2"
+                    });
+                  }}
+                  className="w-full rounded-lg border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+                  disabled={!selectedSkillGroup} // Disabled jika belum memilih kelompok keahlian
                 >
                   <option value="">Pilih</option>
                   {lecturers.map((lecturer: any) => (
@@ -334,36 +449,46 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
                   ))}
                 </select>
               </div>
+
+              {/* Dropdown untuk Dosen Pembimbing 2 */}
               <div>
-                <label>Dosen Pembimbing 2</label>
+                <label className="mb-1 block font-medium text-gray-700">
+                  Dosen Pembimbing 2
+                </label>
                 <select
                   value={selectedLecturers.lecturer2}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setSelectedLecturers({
                       ...selectedLecturers,
                       lecturer2: e.target.value,
-                    })
-                  }
-                  className="w-full rounded border p-2"
+                    });
+                  }}
+                  className="w-full rounded-lg border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+                  disabled={!selectedSkillGroup} // Disabled jika belum memilih kelompok keahlian
                 >
                   <option value="">Pilih</option>
                   {lecturers.map((lecturer: any) => (
-                    <option key={lecturer.id} value={lecturer.id}>
+                    <option
+                      key={lecturer.id}
+                      value={lecturer.id}
+                      disabled={selectedLecturers.lecturer1 === lecturer.id} // Disable jika sudah dipilih di Pembimbing 1
+                    >
                       {lecturer.name}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
+
             <div className="mt-6 flex justify-end space-x-4">
               <button
-                className="rounded bg-gray-200 px-4 py-2"
+                className="rounded-lg bg-gray-200 px-4 py-2"
                 onClick={() => setShowApproveModal(false)}
               >
                 Batal
               </button>
               <button
-                className="rounded bg-green-500 px-4 py-2 text-white"
+                className="rounded-lg bg-green-500 px-4 py-2 text-white shadow hover:bg-green-600"
                 onClick={handleApprove}
               >
                 Simpan dan Setujui
@@ -376,20 +501,61 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
       {/* Edit Lecturers Modal */}
       {showEditLecturersModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="rounded bg-white p-6 shadow-lg">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
             <h2 className="text-lg font-bold">Ubah Dosen Pembimbing</h2>
             <div className="mt-4 space-y-4">
+              {/* Dropdown untuk Kelompok Keahlian */}
               <div>
-                <label>Dosen Pembimbing 1</label>
+                <label className="mb-1 block font-medium text-gray-700">
+                  Kelompok Keahlian
+                </label>
+                <select
+                  value={selectedSkillGroup}
+                  onChange={(e) => {
+                    const selectedGroupId = e.target.value;
+                    setSelectedSkillGroup(selectedGroupId);
+
+                    // Filter dosen berdasarkan kelompok keahlian
+                    const group = skillGroups.find(
+                      (group) => group.id === Number(selectedGroupId),
+                    );
+                    if (!group) {
+                      setLecturers([]);
+                      return;
+                    }
+
+                    const filteredLecturers = allLecturers.filter(
+                      (lecturer: any) =>
+                        lecturer.skillGroups.includes(group.name),
+                    );
+                    setLecturers(filteredLecturers);
+                  }}
+                  className="w-full rounded-lg border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+                >
+                  <option value="">Pilih Kelompok Keahlian</option>
+                  {skillGroups.map((group: any) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Dropdown untuk Dosen Pembimbing 1 */}
+              <div>
+                <label className="mb-1 block font-medium text-gray-700">
+                  Dosen Pembimbing 1
+                </label>
                 <select
                   value={selectedLecturers.lecturer1}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setSelectedLecturers({
                       ...selectedLecturers,
                       lecturer1: e.target.value,
-                    })
-                  }
-                  className="w-full rounded border p-2"
+                    });
+                  }}
+                  className="w-full rounded-lg border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+                  disabled={!selectedSkillGroup} // Disabled jika belum memilih kelompok keahlian
                 >
                   <option value="">Pilih</option>
                   {lecturers.map((lecturer: any) => (
@@ -399,36 +565,47 @@ const AdminSubmissionDetail = ({ submission }: { submission: any }) => {
                   ))}
                 </select>
               </div>
+
+              {/* Dropdown untuk Dosen Pembimbing 2 */}
               <div>
-                <label>Dosen Pembimbing 2</label>
+                <label className="mb-1 block font-medium text-gray-700">
+                  Dosen Pembimbing 2
+                </label>
                 <select
                   value={selectedLecturers.lecturer2}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setSelectedLecturers({
                       ...selectedLecturers,
                       lecturer2: e.target.value,
-                    })
-                  }
-                  className="w-full rounded border p-2"
+                    });
+                  }}
+                  className="w-full rounded-lg border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+                  disabled={!selectedSkillGroup} // Disabled jika belum memilih kelompok keahlian
                 >
                   <option value="">Pilih</option>
-                  {lecturers.map((lecturer: any) => (
-                    <option key={lecturer.id} value={lecturer.id}>
-                      {lecturer.name}
-                    </option>
-                  ))}
+                  {lecturers
+                    .filter(
+                      (lecturer: any) =>
+                        lecturer.id !== selectedLecturers.lecturer1,
+                    ) // Filter untuk tidak menampilkan dosen yang sama
+                    .map((lecturer: any) => (
+                      <option key={lecturer.id} value={lecturer.id}>
+                        {lecturer.name}
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>
+
             <div className="mt-6 flex justify-end space-x-4">
               <button
-                className="rounded bg-gray-200 px-4 py-2"
+                className="rounded-lg bg-gray-200 px-4 py-2"
                 onClick={() => setShowEditLecturersModal(false)}
               >
                 Batal
               </button>
               <button
-                className="rounded bg-blue-500 px-4 py-2 text-white"
+                className="rounded-lg bg-blue-500 px-4 py-2 text-white shadow hover:bg-blue-600"
                 onClick={handleEditLecturers}
               >
                 Simpan Perubahan
