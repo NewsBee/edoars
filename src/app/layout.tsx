@@ -9,7 +9,6 @@ import React, { useEffect, useState } from "react";
 import Loader from "@/components/common/Loader";
 import Providers from "@/components/Auth/Provider";
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
