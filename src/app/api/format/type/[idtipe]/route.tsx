@@ -157,27 +157,31 @@ export const POST = async (req: Request) => {
     }
 
     // File handling for required files
-    const fileColumns = formData.getAll("fileColumns[]"); // This will give you all file columns if they exist
+    const fileColumns = formData.getAll("requiredFiles[]"); // This will give you all file columns if they exist
     fileColumns.forEach((column: any) => {
-      const [name, key, note, typeId] = column.split(","); // Assuming you split the string as comma-separated values
+      const parsedColumn = JSON.parse(column); // Parse the JSON string into an object
+      const { name, key, note } = parsedColumn;
       requiredFiles.push({
         name,
         key,
         note,
-        typeId: typeId ? BigInt(typeId) : null, // Ensuring typeId is BigInt
+      
       });
     });
+    console.log(fileColumns)
 
     // Handling required values
-    const ratingColumns = formData.getAll("ratingColumns[]"); // Similarly for rating columns
+    const ratingColumns = formData.getAll("requiredValues[]"); // Similarly for rating columns
     ratingColumns.forEach((column: any) => {
-      const [name, key, note] = column.split(",");
+      const parsedColumn = JSON.parse(column); // Parse the JSON string into an object
+      const { name, key, note } = parsedColumn;
       requiredValues.push({
         name,
         key,
         note,
       });
     });
+    console.log(ratingColumns)
 
     // Validating required fields
     // if (
@@ -355,6 +359,7 @@ export const POST = async (req: Request) => {
         }),
       ),
     );
+    console.log("createdRequiredFiles: "+ createdRequiredFiles)
 
     // Create Required Values
     const createdRequiredValues = await Promise.all(
@@ -369,6 +374,8 @@ export const POST = async (req: Request) => {
         }),
       ),
     );
+    console.log("createdRequiredValues :" + createdRequiredValues)
+
 
     // Convert BigInt to string for the response
     const convertBigIntToString = (obj: unknown): unknown => {
@@ -397,7 +404,7 @@ export const POST = async (req: Request) => {
       createdRequiredFiles: createdRequiredFiles.map((file) =>
         convertBigIntToString(file),
       ),
-      createdRequiredValues: createdRequiredValues.map((value) =>
+      createdRequiredValues: createdRequiredValues.map((value:any) =>
         convertBigIntToString(value),
       ),
     };

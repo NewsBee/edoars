@@ -1,6 +1,6 @@
 import { useRouter } from "next/navigation";
 import { useState, ChangeEvent, useEffect } from "react";
-import { ToastContainer, toast } from "react-toastify";
+import {  toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css"; // Pastikan Anda mengimpor CSS untuk toast
 
 interface FormData {
@@ -322,7 +322,7 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
     const requiredValues = formData.ratingColumns.map((row) => ({
       name: row[0],
       key: row[1],
-      note: row[2],
+      note: row[3],
     }));
 
     if (requiredValues.length > 0) {
@@ -406,6 +406,7 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
       });
 
       const result = await response.json();
+      console.log(result)
       if (response.ok) {
         toast.success("Format created successfully!"); // Menampilkan toast sukses
         console.log("Format created successfully:", result);
@@ -833,7 +834,6 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
           Submit Format
         </button>
       </div>
-      <ToastContainer />
     </div>
   );
 }
