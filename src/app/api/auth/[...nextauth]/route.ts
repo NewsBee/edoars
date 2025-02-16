@@ -94,6 +94,25 @@ export const authOptions: NextAuthOptions = {
           } as User;
         }
 
+        // Cek apakah user sudah ada di database berdasarkan email
+        // const existingUser = await prismadb.user.findUnique({
+        //   where: { email: credentials.email },
+        // });
+
+        // if (existingUser) {
+        //   // Jika user ditemukan di database, return data user dari database
+        //   return {
+        //     id: existingUser.id.toString(),
+        //     username: existingUser.name,
+        //     email: existingUser.email,
+        //     name: existingUser.name,
+        //     role: existingUser.role,
+        //     nim: existingUser.nim || undefined,
+        //     google_drive_folder_id: existingUser.google_drive_folder_id || undefined,
+        //     status: existingUser.status || "1",
+        //   } as User;
+        // }
+
         try {
           const response = await fetch(
             "https://api.sevimaplatform.com/siakadcloud/v1/user/login",
@@ -112,6 +131,7 @@ export const authOptions: NextAuthOptions = {
           );
 
           const data = await response.json();
+          console.log(data)
 
           if (!response.ok || !data.attributes) {
             console.error("Failed to login, status code:", response.status);
@@ -120,6 +140,9 @@ export const authOptions: NextAuthOptions = {
           }
 
           const prisma = prismadb;
+
+          const userData = data.attributes;
+          const role = userData.role[0];
 
           // Sinkronkan data pengguna ke dalam database
           const upsertUser = await prisma.user.upsert({

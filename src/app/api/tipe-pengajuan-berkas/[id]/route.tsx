@@ -25,6 +25,19 @@ export const PUT = async (
       );
     }
 
+    // Cek apakah tipe pengajuan dengan nama yang sama sudah ada
+    const existingType = await prismadb.type.findUnique({
+      where: { name },
+    });
+
+    const typeIdFromParams = BigInt(params.id);
+    if (existingType && existingType.id !== typeIdFromParams) {
+      return NextResponse.json(
+        { message: "Nama tipe pengajuan sudah ada. Nama harus unik." },
+        { status: 400 },
+      );
+    }
+
     // Update data pada tabel Type
     const updatedType = await prismadb.type.update({
       where: { id: parseInt(id) },
@@ -63,6 +76,8 @@ export const DELETE = async (
   try {
     const { id } = params;
 
+    const typeIdFromParams = BigInt(params.id);
+
     // Validasi ID
     if (!id) {
       return NextResponse.json({ message: "ID tidak valid." }, { status: 400 });
@@ -100,6 +115,7 @@ export const GET = async (
   }
   try {
     const { id } = params;
+    const typeIdFromParams = BigInt(id); // Mengonversi ID dari string ke BigInt
 
     // Validasi ID
     if (!id) {
@@ -109,7 +125,7 @@ export const GET = async (
     // Ambil data tipe pengajuan berdasarkan ID
     const type = await prismadb.type.findUnique({
       where: {
-        id: parseInt(id), // Mengambil berdasarkan ID
+        id: typeIdFromParams, // Mengambil berdasarkan ID BigInt
       },
     });
 
@@ -120,7 +136,13 @@ export const GET = async (
       );
     }
 
-    return NextResponse.json({ type }, { status: 200 });
+    // Convert BigInt fields to string before returning them in the response
+    const serializedType = {
+      ...type,
+      id: type.id.toString(), // Mengonversi BigInt ke string
+    };
+
+    return NextResponse.json({ type: serializedType }, { status: 200 });
   } catch (error: any) {
     console.error("Error saat mengambil data tipe pengajuan:", error);
     return NextResponse.json(

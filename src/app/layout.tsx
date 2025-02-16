@@ -3,11 +3,12 @@ import "jsvectormap/dist/css/jsvectormap.css";
 import "flatpickr/dist/flatpickr.min.css";
 import "@/css/satoshi.css";
 import "@/css/style.css";
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import React, { useEffect, useState } from "react";
 import Loader from "@/components/common/Loader";
 import Providers from "@/components/Auth/Provider";
+
 
 export default function RootLayout({
   children,
@@ -25,9 +26,9 @@ export default function RootLayout({
 
   return (
     <html lang="en">
+      <ToastContainer />
       <Providers>
         <body suppressHydrationWarning={true}>
-          <ToastContainer />
           {loading ? <Loader /> : children}
         </body>
       </Providers>

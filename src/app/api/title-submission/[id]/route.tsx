@@ -100,11 +100,6 @@ export const GET = async (
             User: true, // Detail dosen pembimbing
           },
         },
-        requiredFiles: {
-          include: {
-            RequiredFile: true, // Detail tipe file
-          },
-        },
       },
     });
 
@@ -118,11 +113,6 @@ export const GET = async (
       );
     }
 
-    const files = titleSubmission.requiredFiles.map((file) => ({
-      fileType: file.RequiredFile.file_name,
-      fileUrl: file.file_url,
-      status: file.status,
-    }));
 
     // Ambil log aktivitas terkait
     const activityLogs = await prismadb.activitySubmissionLog.findMany({
@@ -151,17 +141,6 @@ export const GET = async (
         createdAt: lecturer.createdAt,
         updatedAt: lecturer.updatedAt,
         User: lecturer.User,
-      })),
-      requiredFiles: titleSubmission.requiredFiles.map((file) => ({
-        id: file.id,
-        titleSubmissionId: file.titleSubmissionId,
-        submissionId: file.submissionId,
-        requiredFileId: file.requiredFileId,
-        file_url: file.file_url,
-        status: file.status,
-        createdAt: file.createdAt,
-        updatedAt: file.updatedAt,
-        RequiredFile: file.RequiredFile,
       })),
       activityLogs,
     });

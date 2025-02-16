@@ -21,6 +21,17 @@ export const POST = async (req: Request) => {
       );
     }
 
+    // Cek apakah nama tipe pengajuan sudah ada dalam database
+    const existingType = await prismadb.type.findUnique({
+      where: { name },
+    });
+
+    if (existingType) {
+      return NextResponse.json(
+        { message: "Nama tipe pengajuan sudah ada. Nama harus unik." },
+        { status: 400 },
+      );
+    }
     // Generate slug dari nama (URL-friendly string)
     const slug = name.toLowerCase().replace(/\s+/g, "-");
 
@@ -35,13 +46,19 @@ export const POST = async (req: Request) => {
         color: defaultColor, // Anda bisa mengganti dengan logika lain jika warna perlu di-generate
         description,
         status: status === "Aktif" ? "active" : "inactive",
-        is_primary: is_primary || false,
-        is_public: is_public || false,
       },
     });
 
+    const serializedType = {
+      ...newType,
+      id: newType.id.toString(), // Mengonversi BigInt menjadi string
+    };
+
     return NextResponse.json(
-      { message: "Tipe Pengajuan Berkas berhasil dibuat.", newType },
+      {
+        message: "Tipe Pengajuan Berkas berhasil dibuat.",
+        newType: serializedType,
+      },
       { status: 201 },
     );
   } catch (error: any) {
@@ -59,13 +76,23 @@ export const GET = async () => {
   if (!session || session.user.role !== "Admin") {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
+
   try {
     // Ambil semua tipe pengajuan dari database
     const types = await prismadb.type.findMany({
       orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json({ types }, { status: 200 });
+    // Convert BigInt fields to string
+    const serializedTypes = types.map((type) => {
+      return {
+        ...type,
+        id: type.id.toString(), // Menyelesaikan masalah BigInt
+        typeId: type.id ? type.id.toString() : undefined, // Contoh lainnya
+      };
+    });
+
+    return NextResponse.json({ types: serializedTypes }, { status: 200 });
   } catch (error) {
     console.error("Error fetching types:", error);
     return NextResponse.json(

@@ -18,9 +18,11 @@ export const GET = async () => {
         SkillGroupLecturers: {
           include: { SkillGroup: true }, // Ambil data kelompok keahlian
         },
+        Verificator:true
       },
     });
 
+    console.log(lecturers)
     // Ambil semua skill group yang tersedia
     const skillGroups = await prismadb.skillGroup.findMany();
 
@@ -29,10 +31,12 @@ export const GET = async () => {
       id: lecturer.id,
       name: lecturer.name,
       email: lecturer.email,
+      skillGroup: lecturer.Verificator,
       activeBimbinganCount: lecturer.AssignedLecturers.length,
       skillGroups: lecturer.SkillGroupLecturers.map((sgl) => sgl.SkillGroup.name),
     }));
 
+    console.log(formattedLecturers)
     // Format response
     return NextResponse.json(
       {

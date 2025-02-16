@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
 import SidebarAdmin from "@/components/Sidebar/SidebarAdmin";
+import HeaderAdmin from "@/components/Header/HeaderAdmin";
 
 export default function AdminLayout({
   children,
@@ -13,7 +12,7 @@ export default function AdminLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-gray-100 md:p-3 2xl:p-10">
+    <div className="flex min-h-screen bg-gray-100 md:p-3 ">
       <div className="flex w-full">
         {/* Sidebar */}
         {/* <Sidebar
@@ -29,7 +28,7 @@ export default function AdminLayout({
 
         {/* Main Content */}
         <div className="flex-1">
-          <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <HeaderAdmin sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}/>
           <main className="w-full flex- p-6">{children}</main>
         </div>
       </div>

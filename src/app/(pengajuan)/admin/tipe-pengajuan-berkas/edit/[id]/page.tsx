@@ -14,7 +14,7 @@ export default function HalamanFormatTipePengajuan({
     return (
       <div className="min-h-screen w-full flex justify-center bg-gray-50">
         <div className="w-full max-w-6xl p-8">
-          <Breadcrumb pageName="Tambah Tipe Pengajuan" />
+          <Breadcrumb pageName="Edit Tipe Pengajuan" />
           <EditTypeSubmission  id={params.id}/>
         </div>
       </div>

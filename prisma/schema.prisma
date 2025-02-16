@@ -3,210 +3,375 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+//  1) USER
+//     - Menampung data pengguna (mahasiswa, dosen, admin, dsb.)
+// ──────────────────────────────────────────────────────────────────────────────
 model User {
-  id                     Int      @id @default(autoincrement())
-  external_user_id       Int      @unique // ID dari API eksternal
-  name                   String // Nama pengguna
-  email                  String   @unique // Email pengguna
-  phone_number           String? // Nomor telepon pengguna
-  nim                    String?  @unique // NIM untuk mahasiswa
-  role                   String // Role pengguna (Mahasiswa, Dosen, Admin)
-  nama_satker            String? // Nama satuan kerja
-  id_satker              String? // ID satuan kerja
-  periode_masuk          String? // Periode masuk mahasiswa
-  google_drive_folder_id String? // Folder Google Drive
-  status                 String // Status aktif (1 = aktif, 0 = tidak aktif)
-  signature_image        String? // Tanda tangan digital
-  profile_image          String? // Foto profil
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id                     Int       @id @default(autoincrement())
+  external_user_id       Int?      @unique
+  name                   String
+  email                  String    @unique
+  phone_number           String?
+  nim                    String?   @unique
+  password               String?
+  nip                    String?   @unique
+  role                   String // contoh: "mahasiswa", "dosen", "admin"
+  nama_satker            String?
+  id_satker              String?
+  periode_masuk          String?
+  google_drive_folder_id String?
+  status                 String // "1" = aktif, "0" = nonaktif (atau gunakan enum/boolean)
+  signature_image        String?
+  profile_image          String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  last_login             DateTime?
 
+  // RELASI KE ENTITAS LAIN
   Submissions         Submission[]
   Notifications       Notification[]
   Logs                ActivitySubmissionLog[]
   Discussions         Discussion[]
   Grading             Grading[]
   StudentPermissions  StudentTypeAccessPermission[]
-  TypePermissions     TypeAccessPermission[]
+  // TypePermissions     GetTypeAccessPermission[]
   AssignedLecturers   AssignedLecturer[]
   SkillGroupLecturers SkillGroupLecturer[]
-  TitleSubmission     TitleSubmission[]
-  DiscussionRoom      DiscussionRoom[]
+  TitleSubmissions    TitleSubmission[] // relasi 1-N ke TitleSubmission
+  DiscussionRooms     DiscussionRoom[]
   SentMessages        Message[]                     @relation("UserToMessage")
+  Verificator         Verificator[]
+  AuditLog            AuditLog[]
 }
 
-// model TitleSubmission {
-//   id                  Int               @id @default(autoincrement())
-//   userId              Int               // ID mahasiswa
-//   title               String            // Judul penelitian
-//   topic               String?           // Topik penelitian
-//   abstract            String            @db.Text // Abstrak penelitian
-//   status              String            @default("Pending") // Status pengajuan (Pending, Approved, Rejected)
-//   reason              String?           // Alasan penolakan (jika ditolak)
-//   createdAt           DateTime          @default(now())
-//   updatedAt           DateTime          @default(now())
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  action    String
+  timestamp DateTime @default(now())
 
-//   User                User              @relation(fields: [userId], references: [id])
-//   assignedLecturers   AssignedLecturer[] // Relasi dengan pembimbing
-//   activityLogs        ActivitySubmissionLog[] // Relasi dengan log aktivitas
-// }
+  user User @relation(fields: [userId], references: [id])
+}
 
+// ──────────────────────────────────────────────────────────────────────────────
+//  2) TITLE SUBMISSION
+//     - Pengajuan judul penelitian/skripsi yang terpisah dari Submission utama.
+// ──────────────────────────────────────────────────────────────────────────────
 model TitleSubmission {
-  id                  Int                     @id @default(autoincrement())
-  userId              Int                     // ID mahasiswa
-  title               String                  // Judul penelitian
-  topic               String?                 // Topik penelitian
-  abstract            String                  @db.Text // Abstrak penelitian
-  status              String                  @default("Pending") // Status pengajuan (Pending, Approved, Rejected)
-  reason              String?                 // Alasan penolakan (jika ditolak)
-  createdAt           DateTime                @default(now())
-  updatedAt           DateTime                @default(now())
+  id        Int      @id @default(autoincrement())
+  userId    Int // Mahasiswa
+  title     String
+  topic     String?
+  abstract  String?  @db.Text
+  status    String   @default("Pending") // Pending, Approved, Rejected
+  reason    String? // Alasan penolakan (jika Rejected)
+  lirs      String?
+  toefl     String?
+  proposal  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
 
-  User                User                    @relation(fields: [userId], references: [id])
-  assignedLecturers   AssignedLecturer[]      // Relasi dengan pembimbing
-  activityLogs        ActivitySubmissionLog[] // Relasi dengan log aktivitas
-  requiredFiles       SubmissionRequiredFile[] @relation(name: "SubmissionRequiredFileToTitleSubmission") // Relasi dengan berkas tambahan
+  // RELASI
+  User              User                    @relation(fields: [userId], references: [id])
+  assignedLecturers AssignedLecturer[] // Dosen pembimbing/penguji TitleSubmission
+  Verificator       Verificator[]
+  activityLogs      ActivitySubmissionLog[] // Log aktivitas
+  // requiredFiles     SubmissionRequiredFile[] @relation(name: "SubmissionRequiredFileToTitleSubmission")
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  3) SUBMISSION
+//     - Pengajuan umum (misal: Proposal, Sidang, dsb.)
+// ──────────────────────────────────────────────────────────────────────────────
+// model Submission {
+//   id             Int       @id @default(autoincrement())
+//   userId         Int // Mahasiswa
+//   typeId         Int // Tipe pengajuan (misal: Proposal, Sidang)
+//   relatedTitleId Int? // Jika ingin mengaitkan ke TitleSubmission (opsional)
+//   title          String
+//   description    String?   @db.Text
+//   status         String    @default("Pending")
+//   jadwal         DateTime?
+//   createdAt      DateTime  @default(now())
+//   updatedAt      DateTime  @updatedAt
+
+//   // RELASI
+//   User                    User                      @relation(fields: [userId], references: [id])
+//   Type                    Type                      @relation(fields: [typeId], references: [id])
+//   RequiredFiles           SubmissionRequiredFile[]
+//   Logs                    ActivitySubmissionLog[]
+//   Discussions             Discussion[]
+//   Grading                 Grading[]
+//   AssignedLecturers       AssignedLecturer[]
+//   DiscussionRoom          DiscussionRoom[]
+//   SubmissionRequiredValue SubmissionRequiredValue[]
+//   Verificator             Verificator[]
+// }
 
 model Submission {
-  id          Int       @id @default(autoincrement())
-  userId      Int // ID mahasiswa
-  typeId      Int // ID tipe pengajuan
-  relatedTitleId      Int?
-  title       String // Judul pengajuan
-  description String?  @db.Text// Deskripsi pengajuan
-  status      String    @default("Pending") // Status pengajuan (Pending, Approved, Rejected)
-  jadwal      DateTime? // Jadwal sidang atau seminar
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                   BigInt      @id @default(autoincrement())
+  typeId               BigInt
+  userId               Int
+  title                String
+  description          String?     @db.Text
+  status               String      @default("pending") // pending, processed, approved, rejected, repeated
+  jadwal               DateTime? // Jadwal seminar
+  room                 String? // Ruang seminar
+  recordUrl            String? // URL rekaman seminar/sidang
+  grade                String? // Grade char dari penilaian pengajuan
+  gradeDescription     String? // Deskripsi grade dari penilaian pengajuan
+  score                String? // Total rata-rata dari penilaian pengajuan
+  gradeStatus          String? // Status grading
+  documentFormat       String? // URL download dokumen hasil penilaian
+  academicYear         String? // Tahun akademik pengajuan
+  amountOfSks          String? // Jumlah SKS mahasiswa
+  ipkNow               String? // Indeks Prestasi Kumulatif mahasiswa
+  isReadByTataUsaha    Boolean     @default(false) // Jika sudah atau belum dilihat staff bagian administrasi
+  isReadyToBeProcessed Boolean     @default(false) // Pengajuan sudah siap diproses
+  spotaSubmissionId    String? // ID untuk sistem SPOTA (jika relevan)
+  semester             String? // Semester pengajuan dilakukan
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  // skillGroupId         BigInt?                   // foreign key ke SkillGroup
+  // Relasi One-to-One dengan SkillGroup
+  skillGroupId         Int?        @unique // Menambahkan @unique untuk memastikan relasi 1-to-1
+  SkillGroup           SkillGroup? @relation(fields: [skillGroupId], references: [id])
 
-  User              User                     @relation(fields: [userId], references: [id])
-  Type              Type                     @relation(fields: [typeId], references: [id])
-  RequiredFiles     SubmissionRequiredFile[]
-  Logs              ActivitySubmissionLog[]
-  Discussions       Discussion[]
-  Grading           Grading[]
-  AssignedLecturers AssignedLecturer[]
-  DiscussionRoom    DiscussionRoom[]
+  // RELASI
+  User                    User                      @relation(fields: [userId], references: [id])
+  Type                    Type                      @relation(fields: [typeId], references: [id])
+  RequiredFiles           SubmissionRequiredFile[]
+  Logs                    ActivitySubmissionLog[]
+  Discussions             Discussion[]
+  Grading                 Grading[]
+  AssignedLecturers       AssignedLecturer[]
+  DiscussionRoom          DiscussionRoom[]
+  SubmissionRequiredValue SubmissionRequiredValue[]
+  Verificator             Verificator[]
 }
 
-model Type {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique // Nama tipe pengajuan (Proposal, Sidang Akhir)
-  slug        String   @unique // Slug tipe pengajuan
-  color       String // Warna identifikasi tipe pengajuan
-  description String? // Deskripsi tipe pengajuan
-  status      String   @default("active") // Status tipe
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  is_primary  Boolean  @default(false) // Format utama
-  is_public   Boolean  @default(false) // Hak akses untuk semua mahasiswa
+// ──────────────────────────────────────────────────────────────────────────────
+//  4) TYPE
+//     - Jenis pengajuan (misal: "Proposal", "Sidang", dsb.)
+// ──────────────────────────────────────────────────────────────────────────────
+// model Type {
+//   id          Int      @id @default(autoincrement())
+//   name        String   @unique
+//   slug        String   @unique
+//   color       String
+//   description String?
+//   status      String   @default("active")
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
 
-  Submissions        Submission[]
-  RequiredFiles      RequiredFile[]
-  Formats            Format[]
-  StudentPermissions StudentTypeAccessPermission[]
-  TypePermissions    TypeAccessPermission[]
-}
+//   // Apakah ini "format utama" dsb. (menyadur istilah is_primary)
+//   is_primary Boolean @default(false)
+//   // Apakah tipe ini bisa diakses publik/semua mahasiswa tanpa setting manual
+//   is_public  Boolean @default(false)
 
-model ApprovalLog {
-  id           Int      @id @default(autoincrement())
-  userId       Int      // ID pengguna yang membuat keputusan (admin/dosen)
-  submissionId Int?     // ID pengajuan (opsional, jika ini terkait Submission)
-  titleSubmissionId Int? // ID pengajuan judul (opsional, jika ini terkait TitleSubmission)
-  action       String   // Tindakan (Approved, Rejected)
-  reason       String?  // Alasan tindakan (jika ada)
-  createdAt    DateTime @default(now())
-}
-
-
-model RequiredFile {
-  id              Int      @id @default(autoincrement())
-  typeId          Int // ID tipe pengajuan
-  file_name       String // Nama file yang dibutuhkan
-  is_required     Boolean  @default(true) // Apakah file wajib diunggah
-  allowed_formats String // Format yang diperbolehkan (contoh: "PDF, DOCX")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Type                    Type                     @relation(fields: [typeId], references: [id])
-  SubmissionRequiredFiles SubmissionRequiredFile[]
-}
-
-// model SubmissionRequiredFile {
-//   id             Int      @id @default(autoincrement())
-//   submissionId   Int // ID pengajuan
-//   requiredFileId Int // ID file yang dibutuhkan
-//   file_url       String? // URL file yang diunggah
-//   status         String   @default("Pending") // Status file (Pending, Approved, Rejected)
-//   createdAt      DateTime @default(now())
-//   updatedAt      DateTime @updatedAt
-
-//   Submission   Submission   @relation(fields: [submissionId], references: [id])
-//   RequiredFile RequiredFile @relation(fields: [requiredFileId], references: [id])
+//   // RELASI
+//   Submissions        Submission[]
+//   RequiredFiles      RequiredFile[]
+//   Formats            Format[]
+//   StudentPermissions StudentTypeAccessPermission[]
+//   TypePermissions    TypeAccessPermission[]
 // }
+model Type {
+  id          BigInt   @id @default(autoincrement()) // Primary Key
+  name        String   @unique // Nama tipe pengajuan
+  slug        String   @unique // URL unik untuk tipe pengajuan
+  color       String // Penanda warna untuk statistik
+  description String? // Deskripsi penjelasan tipe pengajuan
+  status      Status   @default(active) // Status aktif atau tidak (enum)
+  createdAt   DateTime @default(now()) // Waktu dibuat
+  updatedAt   DateTime @updatedAt // Waktu pembaruan otomatis
 
+  // Relasi
+  submissions           Submission[]
+  // requiredFiles      RequiredFile[]
+  formats               Format[]
+  studentPermissions    StudentTypeAccessPermission[]
+  typePermissions       GetTypeAccessPermission[]
+  accessTypePermissions GetTypeAccessPermission[]     @relation("AccessTypeRelation")
+  // RequiredValue      RequiredValue[]
+}
+
+// Enum untuk status
+enum Status {
+  active
+  inactive
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  5) APPROVAL LOG
+//     - Mencatat aksi "Approved/Rejected" oleh Dosen/Admin (opsional).
+// ──────────────────────────────────────────────────────────────────────────────
+model ApprovalLog {
+  id                Int      @id @default(autoincrement())
+  userId            Int // ID yang memberi approval
+  submissionId      Int? // Terkait Submission
+  titleSubmissionId Int? // Terkait TitleSubmission
+  action            String // "Approved" / "Rejected"
+  reason            String?
+  createdAt         DateTime @default(now())
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  6) REQUIRED FILE
+//     - Daftar file yang DIBUTUHKAN oleh Type tertentu.
+// ──────────────────────────────────────────────────────────────────────────────
+// model RequiredFile {
+//   id              Int      @id @default(autoincrement())
+//   typeId          Int
+//   file_name       String
+//   is_required     Boolean  @default(true)
+//   allowed_formats String // contoh: "PDF, DOCX"
+//   createdAt       DateTime @default(now())
+//   updatedAt       DateTime @updatedAt
+
+//   // RELASI
+//   Type                    Type                     @relation(fields: [typeId], references: [id])
+//   SubmissionRequiredFiles SubmissionRequiredFile[]
+// }
+model RequiredFile {
+  id                   BigInt   @id @default(autoincrement())
+  name                 String   @unique // Nama file yang harus diupload
+  key                  String   @unique // Kode atau kata kunci unik untuk file
+  note                 String? // Catatan tambahan (nullable)
+  formatId             BigInt // Relasi ke format_id
+  // typeId               BigInt
+  isVerificatorCanEdit Boolean  @default(false) // Dapat diedit oleh verifikator
+  isVerificatorCanView Boolean  @default(false) // Dapat dilihat oleh verifikator
+  createdAt            DateTime @default(now()) // Waktu pembuatan
+  updatedAt            DateTime @updatedAt // Waktu pembaruan
+
+  // RELASI
+  // Type                    Type                     @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  Format                  Format                   @relation(fields: [formatId], references: [id], onDelete: Cascade) // Relasi ke format
+  SubmissionRequiredFiles SubmissionRequiredFile[] // Relasi ke submission_required_files
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  7) SUBMISSION REQUIRED FILE
+//     - Berkas yang benar-benar diunggah oleh Mahasiswa di tiap pengajuan
+//       (bisa Submission atau TitleSubmission).
+// ──────────────────────────────────────────────────────────────────────────────
 model SubmissionRequiredFile {
-  id                Int               @id @default(autoincrement())
-  titleSubmissionId Int?              // ID pengajuan judul (opsional)
-  submissionId      Int?              // ID pengajuan (opsional)
-  requiredFileId    Int               // ID file yang dibutuhkan
-  file_url          String?           // URL file yang diunggah
-  status            String            @default("Pending") // Status file (Pending, Approved, Rejected)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                Int      @id @default(autoincrement())
+  titleSubmissionId Int?
+  submissionId      BigInt?
+  requiredFileId    BigInt
+  file_url          String?
+  status            String   @default("Pending")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  TitleSubmission   TitleSubmission?  @relation(name: "SubmissionRequiredFileToTitleSubmission", fields: [titleSubmissionId], references: [id]) // Relasi opsional
-  Submission        Submission?       @relation(fields: [submissionId], references: [id]) // Relasi opsional ke Submission
-  RequiredFile      RequiredFile      @relation(fields: [requiredFileId], references: [id])
+  // RELASI
+  // TitleSubmission TitleSubmission? @relation(name: "SubmissionRequiredFileToTitleSubmission", fields: [titleSubmissionId], references: [id]) // Relasi opsional
+  Submission   Submission?  @relation(fields: [submissionId], references: [id])
+  RequiredFile RequiredFile @relation(fields: [requiredFileId], references: [id])
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+//  8) ASSIGNED LECTURER
+//     - Menandakan dosen pembimbing/penguji yang ditugaskan untuk pengajuan
+//       (bisa ke TitleSubmission atau Submission).
+// Enum untuk role dosen
+enum LecturerRole {
+  Pembimbing1
+  Pembimbing2
+  Penguji1
+  Penguji2
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 model AssignedLecturer {
-  id                 Int               @id @default(autoincrement())
-  titleSubmissionId  Int?              // ID pengajuan judul (opsional, jika terkait TitleSubmission)
-  submissionId       Int?              // ID pengajuan (opsional, jika terkait Submission)
-  lecturerId         Int               // ID dosen
-  role               String            // Role (Pembimbing 1, Pembimbing 2, Penguji)
-  source             String?            // Sumber penentuan (TitleSubmission, Submission)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @default(now())
+  id                Int      @id @default(autoincrement())
+  titleSubmissionId Int?
+  submissionId      BigInt?
+  status            String   @default("aktif")
+  lecturerId        Int // Dosen
+  role              String // "Pembimbing 1", "Penguji", dsb.
+  source            String? // "TitleSubmission" / "Submission" (opsional)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
 
-  TitleSubmission    TitleSubmission?  @relation(fields: [titleSubmissionId], references: [id])
-  Submission         Submission?       @relation(fields: [submissionId], references: [id])
-  User               User              @relation(fields: [lecturerId], references: [id])
+  // RELASI
+  TitleSubmission TitleSubmission? @relation(fields: [titleSubmissionId], references: [id])
+  Submission      Submission?      @relation(fields: [submissionId], references: [id])
+  User            User             @relation(fields: [lecturerId], references: [id])
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+//  9) FORMAT
+//     - Opsi format dari Tipe Pengajuan (mirip sub-level).
+// ──────────────────────────────────────────────────────────────────────────────
+// model Format {
+//   id                   Int       @id @default(autoincrement())
+//   typeId               Int
+//   name                 String
+//   document_format      String?
+//   is_primary           Boolean   @default(false)
+//   is_schedule_required Boolean   @default(false)
+//   createdAt            DateTime  @default(now())
+//   updatedAt            DateTime  @updatedAt
 
+//   // RELASI
+//   Type Type @relation(fields: [typeId], references: [id])
+// }
 model Format {
-  id                   Int      @id @default(autoincrement())
-  typeId               Int // ID tipe pengajuan
-  name                 String // Nama format
-  document_format      String? // Format dokumen (contoh: PDF, DOCX)
-  is_primary           Boolean  @default(false) // Apakah format utama?
-  is_schedule_required Boolean  @default(false) // Apakah jadwal diperlukan?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                                 BigInt   @id @default(autoincrement())
+  typeId                             BigInt
+  name                               String
+  document_format                    String?
+  document_format_name               String?
+  document_format_size               String?
+  is_primary                         Boolean  @default(true)
+  is_schedule_required               Boolean  @default(false) // sudah ada
+  give_access_to_mahasiswa           Boolean  @default(false) // Bagikan hak akses ke semua mhs?
+  if_pass_then_give_access_type_id   Int? // ID Tipe Pengajuan yang akan otomatis diizinkan jika lulus
+  requires_pembimbing                Boolean  @default(false)
+  requires_penguji                   Boolean  @default(false)
+  requires_skill_group               Boolean  @default(false)
+  requires_academic_advisor          Boolean  @default(false) // pembimbing akademik?
+  next_submission_uses_current_verif Boolean  @default(false) // pengajuan selanjutnya otomatis pakai verifikator sekarang
+  createdAt                          DateTime @default(now())
+  updatedAt                          DateTime @updatedAt
+  status                             String   @default("active")
 
-  Type Type @relation(fields: [typeId], references: [id])
+  // RELASI
+  requiredFiles  RequiredFile[]
+  requiredValues RequiredValue[]
+  getTypeAcces   GetTypeAccessPermission[]
+  Type           Type                      @relation(fields: [typeId], references: [id])
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// 10) SKILL GROUP
+//     - Kelompok keahlian (jika diperlukan).
+// ──────────────────────────────────────────────────────────────────────────────
 model SkillGroup {
   id        Int      @id @default(autoincrement())
-  name      String // Nama kelompok keahlian
+  name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  status    String   @default("aktif")
 
-  Lecturers SkillGroupLecturer[]
+  // Relasi 1-to-1 dengan Submission
+  Submission Submission?          @relation
+  Lecturers  SkillGroupLecturer[]
 }
 
 model SkillGroupLecturer {
   id           Int      @id @default(autoincrement())
-  skillGroupId Int // ID kelompok keahlian
-  userId       Int // ID pengguna (dosen)
+  position     String
+  skillGroupId Int
+  userId       Int
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -214,10 +379,14 @@ model SkillGroupLecturer {
   User       User       @relation(fields: [userId], references: [id])
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// 11) NOTIFICATION
+//     - Menyimpan notifikasi untuk user.
+// ──────────────────────────────────────────────────────────────────────────────
 model Notification {
   id        Int      @id @default(autoincrement())
-  userId    Int // ID pengguna
-  message   String // Pesan notifikasi
+  userId    Int
+  message   String
   is_read   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -225,13 +394,17 @@ model Notification {
   User User @relation(fields: [userId], references: [id])
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// 12) DISCUSSION ROOM, POINT, MESSAGE
+//     - Untuk diskusi bimbingan, dsb. 
+// ──────────────────────────────────────────────────────────────────────────────
 model DiscussionRoom {
   id            Int      @id @default(autoincrement())
-  submissionId  Int // ID pengajuan
-  participantId Int // ID peserta (dosen/mahasiswa)
-  role          String // Role (Pembimbing, Penguji, Mahasiswa)
+  submissionId  BigInt
+  participantId Int
+  role          String
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime @default(now())
 
   Submission       Submission        @relation(fields: [submissionId], references: [id])
   User             User              @relation(fields: [participantId], references: [id])
@@ -241,11 +414,11 @@ model DiscussionRoom {
 
 model DiscussionPoint {
   id               Int      @id @default(autoincrement())
-  discussionRoomId Int // ID ruang diskusi
-  description      String // Deskripsi poin bimbingan
-  status           String   @default("Pending") // Status (Pending, In Progress, Completed)
+  discussionRoomId Int
+  description      String
+  status           String   @default("Pending")
   createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  updatedAt        DateTime @default(now())
 
   DiscussionRoom DiscussionRoom @relation(fields: [discussionRoomId], references: [id])
   Messages       Message[]
@@ -253,12 +426,12 @@ model DiscussionPoint {
 
 model Message {
   id                Int      @id @default(autoincrement())
-  discussionRoomId  Int // ID ruang diskusi
-  discussionPointId Int? // ID poin diskusi (opsional)
-  senderId          Int // ID pengirim pesan
-  content           String // Isi pesan
-  fileUrl           String? // URL file yang dilampirkan
-  messageType       String   @default("text") // Jenis pesan (text, file, image)
+  discussionRoomId  Int
+  discussionPointId Int?
+  senderId          Int
+  content           String
+  fileUrl           String?
+  messageType       String   @default("text")
   createdAt         DateTime @default(now())
 
   DiscussionRoom  DiscussionRoom   @relation(fields: [discussionRoomId], references: [id])
@@ -266,34 +439,67 @@ model Message {
   Sender          User             @relation(fields: [senderId], references: [id], name: "UserToMessage")
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// 13) STUDENT TYPE ACCESS PERMISSION
+//     - Mahasiswa userId=... punya akses ke Tipe typeId=...
+// ──────────────────────────────────────────────────────────────────────────────
 model StudentTypeAccessPermission {
   id        Int      @id @default(autoincrement())
-  userId    Int // ID mahasiswa
-  typeId    Int // ID tipe pengajuan
+  userId    Int
+  typeId    BigInt
   createdAt DateTime @default(now())
 
   User User @relation(fields: [userId], references: [id])
   Type Type @relation(fields: [typeId], references: [id])
 }
 
-model TypeAccessPermission {
-  id        Int      @id @default(autoincrement())
-  userId    Int // ID pengguna (dosen, admin)
-  typeId    Int // ID tipe pengajuan
-  createdAt DateTime @default(now())
+// ──────────────────────────────────────────────────────────────────────────────
+// 14) TYPE ACCESS PERMISSION
+//     - Misal untuk Admin / Dosen (atau pihak tertentu) agar bisa mengelola Tipe.
+// ──────────────────────────────────────────────────────────────────────────────
 
-  User User @relation(fields: [userId], references: [id])
-  Type Type @relation(fields: [typeId], references: [id])
+model GetTypeAccessPermission {
+  id           BigInt   @id @default(autoincrement())
+  typeId       BigInt
+  accessTypeId BigInt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  formatId     BigInt
+  // type_id  BigInt?
+
+  // type                    Type?                     @relation(fields: [type_id], references: [id])
+  format Format @relation(fields: [formatId], references: [id], onDelete: Cascade)
+
+  Type       Type @relation(fields: [typeId], references: [id])
+  AccessType Type @relation("AccessTypeRelation", fields: [accessTypeId], references: [id])
 }
 
+// model GetTypeAccessPermission {
+//   id           Int      @id @default(autoincrement())
+//   // userId    Int
+//   typeId       BigInt
+//   accessTypeId BigInt
+//   createdAt    DateTime @default(now())
+
+//   // User User @relation(fields: [userId], references: [id])
+//   Type Type @relation(fields: [typeId], references: [id])
+
+// }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 15) TEMPORARY FILE
+// ──────────────────────────────────────────────────────────────────────────────
 model TemporaryFile {
   id        Int      @id @default(autoincrement())
-  folder    String // Folder sementara
-  filename  String // Nama file
+  folder    String
+  filename  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// 16) SETTING
+// ──────────────────────────────────────────────────────────────────────────────
 model Setting {
   id        Int      @id @default(autoincrement())
   key       String   @unique
@@ -302,51 +508,130 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
-// model ActivitySubmissionLog {
-//   id           Int      @id @default(autoincrement())
-//   submissionId Int // ID pengajuan terkait
-//   userId       Int // ID pengguna
-//   activity     String // Aktivitas pengguna
-//   createdAt    DateTime @default(now())
-
-//   Submission Submission @relation(fields: [submissionId], references: [id])
-//   TitleSubmission     TitleSubmission?  @relation(fields: [titleSubmissionId], references: [id])
-//   User       User       @relation(fields: [userId], references: [id])
-// }
-
+// ──────────────────────────────────────────────────────────────────────────────
+// 17) ACTIVITY SUBMISSION LOG
+//     - Mencatat aktivitas user terhadap submission atau titleSubmission.
+// ──────────────────────────────────────────────────────────────────────────────
 model ActivitySubmissionLog {
-  id                Int               @id @default(autoincrement())
-  submissionId      Int?              // ID pengajuan Submission (opsional)
-  titleSubmissionId Int?              // ID pengajuan TitleSubmission (opsional)
-  userId            Int               // ID pengguna
-  activity          String            // Aktivitas pengguna
-  createdAt         DateTime          @default(now())
+  id                Int      @id @default(autoincrement())
+  submissionId      BigInt?
+  titleSubmissionId Int?
+  userId            Int
+  activity          String
+  createdAt         DateTime @default(now())
 
-  Submission        Submission?       @relation(fields: [submissionId], references: [id])
-  TitleSubmission   TitleSubmission?  @relation(fields: [titleSubmissionId], references: [id])
-  User              User              @relation(fields: [userId], references: [id])
+  Submission      Submission?      @relation(fields: [submissionId], references: [id])
+  TitleSubmission TitleSubmission? @relation(fields: [titleSubmissionId], references: [id])
+  User            User             @relation(fields: [userId], references: [id])
 }
 
-
+// ──────────────────────────────────────────────────────────────────────────────
+// 18) DISCUSSION
+//     - Contoh diskusi sederhana (kadang bisa digantikan oleh DiscussionRoom di atas).
+// ──────────────────────────────────────────────────────────────────────────────
 model Discussion {
   id           Int      @id @default(autoincrement())
-  submissionId Int // ID pengajuan terkait
-  senderId     Int // ID pengirim pesan
-  message      String // Isi pesan diskusi
+  submissionId BigInt
+  senderId     Int
+  message      String
   createdAt    DateTime @default(now())
 
   Submission Submission @relation(fields: [submissionId], references: [id])
   User       User       @relation(fields: [senderId], references: [id])
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// 19) GRADING
+//     - Menyimpan penilaian dosen/verifikator terhadap Submission
+//       (atau bisa pula diperluas agar mendukung TitleSubmission).
+// ──────────────────────────────────────────────────────────────────────────────
 model Grading {
   id            Int      @id @default(autoincrement())
-  submissionId  Int // ID pengajuan
-  verificatorId Int // ID dosen
-  grade         Float // Nilai akhir
-  comments      String? // Komentar dosen
+  submissionId  BigInt
+  verificatorId Int
+  grade         Float
+  comments      String?
   createdAt     DateTime @default(now())
 
   Submission Submission @relation(fields: [submissionId], references: [id])
   User       User       @relation(fields: [verificatorId], references: [id])
+}
+
+// model RequiredValue {
+//   id                BigInt     @id @default(autoincrement())
+//   name              String     @unique
+//   key               String     @unique
+//   note              String?    // Nullable
+//   formatId          BigInt
+//   format            Format    @relation(fields: [formatId], references: [id])
+//   createdAt         DateTime   @default(now())
+//   updatedAt         DateTime   @updatedAt
+
+//   // Optional: If you want to reference this model in other places, you can add the relations here.
+// }
+model RequiredValue {
+  id       BigInt  @id @default(autoincrement())
+  name     String
+  key      String  @unique
+  note     String? // Nullable
+  formatId BigInt
+  // type_id  BigInt?
+
+  // type                    Type?                     @relation(fields: [type_id], references: [id])
+  format                  Format                    @relation(fields: [formatId], references: [id], onDelete: Cascade)
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  SubmissionRequiredValue SubmissionRequiredValue[]
+}
+
+model SubmissionRequiredValue {
+  id              BigInt   @id @default(autoincrement()) // Primary key, Auto Increment
+  value           String // Nilai penilaian yang diinput oleh dosen
+  requiredValueId BigInt // Foreign Key yang mengarah ke tabel `RequiredValue`
+  verificatorId   BigInt // Foreign Key yang mengarah ke tabel `Verificator`
+  submissionId    BigInt // Foreign Key yang mengarah ke tabel `Submission`
+  createdAt       DateTime @default(now()) // Timestamp ketika data dibuat
+  updatedAt       DateTime @updatedAt // Timestamp otomatis diperbarui saat data diubah
+
+  // Relasi ke tabel-tabel lain
+  requiredValue RequiredValue @relation(fields: [requiredValueId], references: [id])
+  verificator   Verificator   @relation(fields: [verificatorId], references: [id])
+  submission    Submission    @relation(fields: [submissionId], references: [id])
+}
+
+enum VerificatorType {
+  Pembimbing
+  Penguji
+  PembimbingAkademik
+}
+
+enum VerificatorStatus {
+  active
+  inactive
+}
+
+enum SubmissionStatus {
+  pending
+  processed
+  approved
+  rejected
+  repeated
+}
+
+model Verificator {
+  id                BigInt            @id @default(autoincrement()) // Kunci utama
+  titleSubmissionId Int?
+  type              VerificatorType // Tipe Verificator (Pembimbing, Penguji, Pembimbing Akademik)
+  status            VerificatorStatus @default(active) // Status Verificator (Active/Inactive)
+  createdAt         DateTime          @default(now()) // Waktu pembuatan
+  updatedAt         DateTime          @updatedAt // Waktu pembaruan
+
+  // RELASI
+  submissionId BigInt? // Jika berhubungan dengan submission
+  Submission   Submission? @relation(fields: [submissionId], references: [id]) // Relasi dengan tabel submissions
+
+  lecturerId              Int // Dosen yang terlibat sebagai Verificator
+  TitleSubmission         TitleSubmission?          @relation(fields: [titleSubmissionId], references: [id])
+  User                    User                      @relation(fields: [lecturerId], references: [id]) // Relasi dengan tabel User (Dosen)
+  SubmissionRequiredValue SubmissionRequiredValue[]
 }

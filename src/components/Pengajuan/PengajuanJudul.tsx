@@ -26,7 +26,7 @@ const ProposalSubmission = () => {
   });
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -66,10 +66,14 @@ const ProposalSubmission = () => {
       formDataToSend.append("toefl", formData.toefl as Blob);
       formDataToSend.append("proposal", formData.proposal as Blob);
 
+      console.log(formData)
+      
       const response = await fetch("/api/title-submission", {
         method: "POST",
         body: formDataToSend,
       });
+      console.log(response)
+
 
       if (!response.ok) {
         const data = await response.json();
@@ -92,16 +96,16 @@ const ProposalSubmission = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <ToastContainer position="top-right" autoClose={3000} />
 
-      <div className="max-w-5xl w-full rounded-lg bg-white p-8 shadow-md">
-        <h1 className="text-2xl font-semibold text-gray-800 mb-6">
+      <div className="w-full rounded-lg bg-white p-8 shadow-md">
+        <h1 className="mb-6 text-2xl font-semibold text-gray-800">
           Pengajuan Judul Proposal
         </h1>
         <form className="space-y-8" onSubmit={handleSubmit}>
           {/* Field Input */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {/* Judul */}
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700">
@@ -113,7 +117,7 @@ const ProposalSubmission = () => {
                 value={formData.title}
                 onChange={handleInputChange}
                 placeholder="Masukkan judul"
-                className="mt-1 p-2 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
 
@@ -128,7 +132,7 @@ const ProposalSubmission = () => {
                 value={formData.topic}
                 onChange={handleInputChange}
                 placeholder="Masukkan topik"
-                className="mt-1 p-2 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
 
@@ -143,15 +147,28 @@ const ProposalSubmission = () => {
                 onChange={handleInputChange}
                 placeholder="Masukkan abstrak"
                 rows={5}
-                className="mt-1 p-2 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               ></textarea>
             </div>
+          </div>
+
+          {/* <hr className="mx-auto my-4 h-1 w-full rounded-sm border-2 border-dashed bg-gray-100 md:my-10"></hr> */}
+
+          <div className="flex items-center">
+            {/* Garis kiri */}
+            <div className="h-px flex-grow border-2 border-dashed bg-gray-300" />
+
+            {/* Teks/ikon di tengah */}
+            <span className="mx-2 text-gray-500">UPLOAD BERKAS</span>
+
+            {/* Garis kanan */}
+            <div className="h-px flex-grow border-2 border-dashed bg-gray-300" />
           </div>
 
           {/* Upload Berkas */}
           <div className="space-y-6">
             {/* LIRS */}
-            <div className="relative border rounded-lg p-4 shadow-sm bg-gray-50 hover:bg-gray-100">
+            <div className="relative rounded-lg border bg-gray-50 p-4 shadow-sm hover:bg-gray-100">
               <div>
                 <p className="text-sm font-medium text-gray-700">#1 - LIRS</p>
                 <p className="text-xs text-gray-500">
@@ -169,21 +186,23 @@ const ProposalSubmission = () => {
                 />
                 <label
                   htmlFor="lirs-upload"
-                  className="cursor-pointer w-full flex items-center justify-center border-2 border-dashed border-blue-500 rounded-md bg-blue-50 p-4 hover:bg-blue-100"
+                  className="flex w-full cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-blue-500 bg-blue-50 p-4 hover:bg-blue-100"
                 >
                   {formData.lirs ? (
                     <span className="text-sm text-gray-700">
                       {formData.lirs.name}
                     </span>
                   ) : (
-                    <span className="text-sm text-blue-500">Upload Document</span>
+                    <span className="text-sm text-blue-500">
+                      Upload Document
+                    </span>
                   )}
                 </label>
               </div>
             </div>
 
             {/* TOEFL */}
-            <div className="relative border rounded-lg p-4 shadow-sm bg-gray-50 hover:bg-gray-100">
+            <div className="relative rounded-lg border bg-gray-50 p-4 shadow-sm hover:bg-gray-100">
               <div>
                 <p className="text-sm font-medium text-gray-700">
                   #2 - Sertifikat TOEFL
@@ -203,21 +222,23 @@ const ProposalSubmission = () => {
                 />
                 <label
                   htmlFor="toefl-upload"
-                  className="cursor-pointer w-full flex items-center justify-center border-2 border-dashed border-blue-500 rounded-md bg-blue-50 p-4 hover:bg-blue-100"
+                  className="flex w-full cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-blue-500 bg-blue-50 p-4 hover:bg-blue-100"
                 >
                   {formData.toefl ? (
                     <span className="text-sm text-gray-700">
                       {formData.toefl.name}
                     </span>
                   ) : (
-                    <span className="text-sm text-blue-500">Upload Document</span>
+                    <span className="text-sm text-blue-500">
+                      Upload Document
+                    </span>
                   )}
                 </label>
               </div>
             </div>
 
             {/* Proposal */}
-            <div className="relative border rounded-lg p-4 shadow-sm bg-gray-50 hover:bg-gray-100">
+            <div className="relative rounded-lg border bg-gray-50 p-4 shadow-sm hover:bg-gray-100">
               <div>
                 <p className="text-sm font-medium text-gray-700">
                   #3 - Proposal
@@ -237,14 +258,16 @@ const ProposalSubmission = () => {
                 />
                 <label
                   htmlFor="proposal-upload"
-                  className="cursor-pointer w-full flex items-center justify-center border-2 border-dashed border-blue-500 rounded-md bg-blue-50 p-4 hover:bg-blue-100"
+                  className="flex w-full cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-blue-500 bg-blue-50 p-4 hover:bg-blue-100"
                 >
                   {formData.proposal ? (
                     <span className="text-sm text-gray-700">
                       {formData.proposal.name}
                     </span>
                   ) : (
-                    <span className="text-sm text-blue-500">Upload Document</span>
+                    <span className="text-sm text-blue-500">
+                      Upload Document
+                    </span>
                   )}
                 </label>
               </div>
@@ -273,23 +296,23 @@ const ProposalSubmission = () => {
       {/* Modal Konfirmasi */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+            <h2 className="mb-4 text-lg font-bold text-gray-800">
               Konfirmasi Pengajuan
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="mb-6 text-gray-600">
               Apakah Anda yakin ingin mengirim pengajuan ini? Pastikan semua
               informasi sudah benar sebelum melanjutkan.
             </p>
             <div className="flex justify-end space-x-4">
               <button
-                className="bg-gray-200 text-gray-700 rounded-md px-4 py-2 hover:bg-gray-300"
+                className="rounded-md bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300"
                 onClick={() => setShowModal(false)}
               >
                 Batal
               </button>
               <button
-                className="bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600"
+                className="rounded-md bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
                 onClick={handleConfirmSubmit}
               >
                 Ya, Kirim

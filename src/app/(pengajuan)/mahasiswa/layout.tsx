@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Sidebar from "@/components/Sidebar";
+
 import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar/SidabarMahasiswa";
 
 export default function MahasiswaLayout({
   children,
@@ -50,7 +51,7 @@ export default function MahasiswaLayout({
     //     </div>
     //   </div>
     // </div>
-    <div className="flex min-h-screen bg-gray-100 md:p-3 2xl:p-10">
+    <div className="flex min-h-screen bg-gray-100 md:p-3">
       <div className="flex w-full">
         {/* Sidebar */}
         <Sidebar

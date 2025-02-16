@@ -67,6 +67,10 @@ const TypeSubmissionPage = () => {
     router.push(`/admin/tipe-pengajuan-berkas/edit/${id}`);
   };
 
+  const handleFormat = (id: number) => {
+    router.push(`/admin/tipe-pengajuan-berkas/${id}/format`);
+  };
+
   // Data yang ditampilkan per halaman
   const paginatedData = data.slice(
     (currentPage - 1) * itemsPerPage,
@@ -159,7 +163,9 @@ const TypeSubmissionPage = () => {
                       >
                         Hapus
                       </button>
-                      <button className="px-3 py-2 text-sm text-white bg-gray-500 rounded-lg hover:bg-gray-600">
+                      <button
+                       onClick={() => handleFormat(item.id)}
+                       className="px-3 py-2 text-sm text-white bg-gray-500 rounded-lg hover:bg-gray-600">
                         Format
                       </button>
                     </div>
