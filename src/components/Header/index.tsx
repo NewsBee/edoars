@@ -53,7 +53,7 @@ const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
 
         {/* Icons and User Profile */}
         <div className="flex items-center gap-4">
-          <DarkModeSwitcher />
+          {/* <DarkModeSwitcher /> */}
           <DropdownNotification />
           <DropdownUser />
         </div>

@@ -11,6 +11,7 @@ import { FaHome, FaUser, FaSignOutAlt } from "react-icons/fa";
 import { MdSettings } from "react-icons/md";
 import { IoMdPaper } from "react-icons/io";
 import { GiTripleLock } from "react-icons/gi";
+import { FaBullhorn } from "react-icons/fa";
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -85,6 +86,11 @@ const SidebarAdmin = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
           label: "Kelompok Keahlian",
           route: "/admin/kelompok-keahlian",
           icon: <GiTripleLock />, // Lock icon
+        },
+        {
+          label: "Pengumuman",
+          route: "/admin/pengumuman",
+          icon: <FaBullhorn />
         },
       ],
     },

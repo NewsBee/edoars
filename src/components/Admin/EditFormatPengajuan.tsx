@@ -24,6 +24,7 @@ interface FormData {
     requires_skill_group: boolean;
     scheduleRequired: boolean;
     allLecturersComment: boolean;
+    newtitle: boolean;
   };
   maxSupervisor: number;
   fileColumns: string[][];
@@ -73,6 +74,7 @@ export default function EditFormatPengajuan({
       requires_skill_group: false,
       scheduleRequired: false,
       allLecturersComment: false,
+      newtitle: false,
     },
     maxSupervisor: 1,
     fileColumns: [["", "", "", ""]],
@@ -153,6 +155,7 @@ export default function EditFormatPengajuan({
               requires_skill_group: result.requires_skill_group ?? false, // Memetakan dari requires_academic_advisor
               scheduleRequired: result.is_schedule_required ?? false,
               allLecturersComment: result.allLecturersComment ?? false, // Ini opsional jika ada
+              newtitle: result.is_newtitle_submission ?? false, // Ini opsional jika ada
             },
             maxSupervisor: 1, // Jika ada properti terkait maxSupervisor di API, sesuaikan
             fileColumns: result.requiredFiles.map((file: RequiredFile) => [
@@ -290,6 +293,10 @@ export default function EditFormatPengajuan({
     formDataToSend.append(
       "is_schedule_required",
       formData.requires.scheduleRequired ? "true" : "false",
+    );
+    formDataToSend.append(
+      "is_newtitle",
+      formData.requires.newtitle ? "true" : "false",
     );
     formDataToSend.append(
       "give_access_to_mahasiswa",
@@ -670,6 +677,16 @@ export default function EditFormatPengajuan({
                   className="mr-2"
                 />
                 <span>Memerlukan Kelompok Keahlian?</span>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="newtitle"
+                  checked={formData.requires.newtitle}
+                  onChange={handleChange}
+                  className="mr-2"
+                />
+                <span>Baru melakukan pengajuan judul?</span>
               </div>
               <div className="flex items-center">
                 <input

@@ -64,7 +64,7 @@ export default function MahasiswaLayout({
         {/* Main Content */}
         <div className="flex flex-1 flex-col">
           <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 ">{children}</main>
         </div>
       </div>
     </div>

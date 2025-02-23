@@ -73,15 +73,17 @@ export const POST = async (req: Request) => {
 export const GET = async () => {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "Admin") {
+  if (!session || session.user.role === "Mahasiswa") {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
+  console.log("Session:");
 
   try {
     // Ambil semua tipe pengajuan dari database
     const types = await prismadb.type.findMany({
       orderBy: { createdAt: "asc" },
     });
+    console.log(types)
 
     // Convert BigInt fields to string
     const serializedTypes = types.map((type) => {

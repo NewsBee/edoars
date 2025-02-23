@@ -1,39 +1,35 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import ClickOutside from "@/components/ClickOutside";
 import Image from "next/image";
 
-const notificationList = [
-  {
-    image: "/images/user/user-15.png",
-    title: "Piter Joined the Team!",
-    subTitle: "Congratulate him",
-  },
-  {
-    image: "/images/user/user-02.png",
-    title: "New message received",
-    subTitle: "Devid sent you new message",
-  },
-  {
-    image: "/images/user/user-26.png",
-    title: "New Payment received",
-    subTitle: "Check your earnings",
-  },
-  {
-    image: "/images/user/user-28.png",
-    title: "Jolly completed tasks",
-    subTitle: "Assign her newtasks",
-  },
-  {
-    image: "/images/user/user-27.png",
-    title: "Roman Joined the Team!",
-    subTitle: "Congratulate him",
-  },
-];
-
 const DropdownNotification = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifying, setNotifying] = useState(true);
+  interface Notification {
+    User: {
+      profile_image: string;
+    };
+    activity: string;
+    createdAt: string;
+  }
+
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch('/api/logs');
+        const data = await response.json();
+        setNotifications(data);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+  console.log(notifications);
 
   return (
     <ClickOutside onClick={() => setDropdownOpen(false)} className="relative hidden sm:block">
@@ -82,12 +78,12 @@ const DropdownNotification = () => {
                 Notifications
               </h5>
               <span className="rounded-md bg-primary px-2 py-0.5 text-body-xs font-medium text-white">
-                5 new
+                {notifications.length} new
               </span>
             </div>
 
             <ul className="no-scrollbar mb-5 flex h-auto flex-col gap-1 overflow-y-auto">
-              {notificationList.map((item, index) => (
+              {notifications.map((item, index) => (
                 <li key={index}>
                   <Link
                     className="flex items-center gap-4 rounded-[10px] p-2.5 hover:bg-gray-2 dark:hover:bg-dark-3"
@@ -95,23 +91,23 @@ const DropdownNotification = () => {
                   >
                     <span className="block h-14 w-14 rounded-full">
                       <Image
-                        width={112}
-                        height={112}
-                        src={item.image}
-                        style={{
-                          width: "auto",
-                          height: "auto",
-                        }}
-                        alt="User"
+                      width={112}
+                      height={112}
+                      src={item.User.profile_image || "/images/user/user-default.png"}
+                      style={{
+                        width: "auto",
+                        height: "auto",
+                      }}
+                      alt="User"
                       />
                     </span>
 
                     <span className="block">
                       <span className="block font-medium text-dark dark:text-white">
-                        {item.title}
+                        {item.activity}
                       </span>
                       <span className="block text-body-sm font-medium text-dark-5 dark:text-dark-6">
-                        {item.subTitle}
+                        {new Date(item.createdAt).toLocaleString()}
                       </span>
                     </span>
                   </Link>

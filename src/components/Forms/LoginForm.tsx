@@ -4,12 +4,14 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import Image from 'next/image';
 import { toast } from 'react-toastify';
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const FormLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false); // Tambahkan state untuk remember me
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // State for toggling password visibility
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
@@ -19,7 +21,6 @@ const FormLogin = () => {
       redirect: false,
       email,
       password,
-      // Kirimkan rememberMe sebagai bagian dari request
       rememberMe: rememberMe,
     });
 
@@ -37,8 +38,18 @@ const FormLogin = () => {
           autoClose: 3000,
         });
       }
-    } else {
-      window.location.href = "/";
+    } else if (res && res.ok) {
+      // Fetch the session to get user details
+      const session = await fetch("/api/auth/session").then((res) => res.json());
+      const role = session?.user?.role;
+      if (role) {
+        window.location.href = `/${role.toLowerCase()}/dashboard`;
+      } else {
+        toast.error("Unable to determine user role.", {
+          position: "top-center",
+          autoClose: 3000,
+        });
+      }
     }
   };
 
@@ -61,7 +72,7 @@ const FormLogin = () => {
       <div className="flex items-center rounded-lg p-4 mb-4 bg-white bg-opacity-20">
         <Image src="/images/icon/icon-password.png" alt="Password Icon" width={24} height={24} className="mr-2" />
         <input
-          type="password"
+          type={showPassword ? "text" : "password"} // Toggle input type based on showPassword state
           id="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -69,6 +80,13 @@ const FormLogin = () => {
           className="bg-transparent w-full outline-none text-lg text-white"
           placeholder="Password"
         />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)} // Toggle showPassword state
+          className="ml-2 text-white"
+        >
+          {showPassword ? <FaEyeSlash /> : <FaEye />}
+        </button>
       </div>
       <div className="flex items-center mb-4">
         <input
@@ -76,7 +94,7 @@ const FormLogin = () => {
           id="rememberMe"
           className="mr-2"
           checked={rememberMe}
-          onChange={(e) => setRememberMe(e.target.checked)} // Set rememberMe state berdasarkan checkbox
+          onChange={(e) => setRememberMe(e.target.checked)}
         />
         <label htmlFor="rememberMe" className="text-white">Remember me</label>
       </div>

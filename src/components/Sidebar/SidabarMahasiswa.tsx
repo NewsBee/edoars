@@ -7,6 +7,7 @@ import Image from "next/image";
 import SidebarItem from "@/components/Sidebar/SidebarItem";
 import ClickOutside from "@/components/ClickOutside";
 import useLocalStorage from "@/hooks/useLocalStorage";
+import { FaBullhorn } from "react-icons/fa";
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -96,34 +97,34 @@ const Sidebar = ({
           label: "Pengajuan",
           route: "#",
           children: availableTypes.map((type) => ({
-            label: type.name,  // Using 'name' from API
-            route: `/mahasiswa/pengajuan/${type.slug}`,  // Dynamic route based on slug
+            label: type.name, // Using 'name' from API
+            route: `/mahasiswa/pengajuan/${type.slug}`, // Dynamic route based on slug
           })),
-        //   children: [
-            
-        //     {
-        //       label: "Pengajuan Judul (Pra TA)",
-        //       route: "/mahasiswa/pengajuan/praskripsi",
-        //     },
-        //     {
-        //       label: "Pengajuan Proposal (Seminar Proposal)",
-        //       route:
-        //         role === "Mahasiswa"
-        //           ? hasTitle
-        //             ? "/mahasiswa/pengajuan/proposal"
-        //             : "#"
-        //           : `/${role.toLowerCase()}/pengajuan/proposal`,
-        //     },
-        //     {
-        //       label: "Pengajuan Sidang",
-        //       route:
-        //         role === "Mahasiswa"
-        //           ? hasTitle
-        //             ? "/mahasiswa/pengajuan/sidang"
-        //             : "#"
-        //           : `/${role.toLowerCase()}/pengajuan/sidang`,
-        //     },
-        //   ],
+          //   children: [
+
+          //     {
+          //       label: "Pengajuan Judul (Pra TA)",
+          //       route: "/mahasiswa/pengajuan/praskripsi",
+          //     },
+          //     {
+          //       label: "Pengajuan Proposal (Seminar Proposal)",
+          //       route:
+          //         role === "Mahasiswa"
+          //           ? hasTitle
+          //             ? "/mahasiswa/pengajuan/proposal"
+          //             : "#"
+          //           : `/${role.toLowerCase()}/pengajuan/proposal`,
+          //     },
+          //     {
+          //       label: "Pengajuan Sidang",
+          //       route:
+          //         role === "Mahasiswa"
+          //           ? hasTitle
+          //             ? "/mahasiswa/pengajuan/sidang"
+          //             : "#"
+          //           : `/${role.toLowerCase()}/pengajuan/sidang`,
+          //     },
+          //   ],
         },
         {
           icon: (
@@ -141,25 +142,11 @@ const Sidebar = ({
               />
             </svg>
           ),
-          label: "Penawaran Judul",
-          route: `/${role.toLowerCase()}/penawaran`,
+          label: "Bimbingan",
+          route: `/${role.toLowerCase()}/bimbingan`,
         },
         {
-          icon: (
-            <svg
-              className="text- fill-current"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15.5H9V14h2v3.5zm1-4.5h-1V8h1v5z"
-                fill="currentColor"
-              />
-            </svg>
-          ),
+          icon: <FaBullhorn />,
           label: "Pengumuman",
           route: `/${role.toLowerCase()}/pengumuman`,
         },
@@ -206,7 +193,7 @@ const Sidebar = ({
             </svg>
           ),
           label: "Jadwal",
-          route: "/calendar",
+          route: "/mahasiswa/jadwal",
         },
         {
           icon: (
@@ -233,7 +220,7 @@ const Sidebar = ({
             </svg>
           ),
           label: "Profile",
-          route: "/profile",
+          route: "/mahasiswa/profile",
         },
       ],
     },

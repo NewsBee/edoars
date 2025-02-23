@@ -121,6 +121,7 @@ model Submission {
   description          String?     @db.Text
   status               String      @default("pending") // pending, processed, approved, rejected, repeated
   jadwal               DateTime? // Jadwal seminar
+  requestJadwal        DateTime? // Jadwal seminar
   room                 String? // Ruang seminar
   recordUrl            String? // URL rekaman seminar/sidang
   grade                String? // Grade char dari penilaian pengajuan
@@ -137,10 +138,8 @@ model Submission {
   semester             String? // Semester pengajuan dilakukan
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
-  // skillGroupId         BigInt?                   // foreign key ke SkillGroup
-  // Relasi One-to-One dengan SkillGroup
-  skillGroupId         Int?        @unique // Menambahkan @unique untuk memastikan relasi 1-to-1
-  SkillGroup           SkillGroup? @relation(fields: [skillGroupId], references: [id])
+  skillGroupId         Int?       
+  SkillGroup           SkillGroup? @relation(fields: [skillGroupId], references: [id], name: "SkillGroupToSubmissions")
 
   // RELASI
   User                    User                      @relation(fields: [userId], references: [id])
@@ -151,7 +150,7 @@ model Submission {
   Grading                 Grading[]
   AssignedLecturers       AssignedLecturer[]
   DiscussionRoom          DiscussionRoom[]
-  SubmissionRequiredValue SubmissionRequiredValue[]
+  SubmissionRequiredValue SubmissionRequiredValue[] 
   Verificator             Verificator[]
 }
 
@@ -273,7 +272,7 @@ model SubmissionRequiredFile {
 
   // RELASI
   // TitleSubmission TitleSubmission? @relation(name: "SubmissionRequiredFileToTitleSubmission", fields: [titleSubmissionId], references: [id]) // Relasi opsional
-  Submission   Submission?  @relation(fields: [submissionId], references: [id])
+  Submission   Submission?  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   RequiredFile RequiredFile @relation(fields: [requiredFileId], references: [id])
 }
 
@@ -333,6 +332,7 @@ model Format {
   document_format_size               String?
   is_primary                         Boolean  @default(true)
   is_schedule_required               Boolean  @default(false) // sudah ada
+  is_newtitle_submission             Boolean  @default(false) // pengajuan judul baru
   give_access_to_mahasiswa           Boolean  @default(false) // Bagikan hak akses ke semua mhs?
   if_pass_then_give_access_type_id   Int? // ID Tipe Pengajuan yang akan otomatis diizinkan jika lulus
   requires_pembimbing                Boolean  @default(false)
@@ -362,8 +362,7 @@ model SkillGroup {
   updatedAt DateTime @updatedAt
   status    String   @default("aktif")
 
-  // Relasi 1-to-1 dengan Submission
-  Submission Submission?          @relation
+  Submissions Submission[] @relation("SkillGroupToSubmissions")
   Lecturers  SkillGroupLecturer[]
 }
 
@@ -415,7 +414,7 @@ model DiscussionRoom {
 model DiscussionPoint {
   id               Int      @id @default(autoincrement())
   discussionRoomId Int
-  description      String
+  description      String?
   status           String   @default("Pending")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @default(now())
@@ -606,8 +605,9 @@ enum VerificatorType {
 }
 
 enum VerificatorStatus {
-  active
-  inactive
+  pending
+  approved
+  rejected
 }
 
 enum SubmissionStatus {
@@ -622,7 +622,7 @@ model Verificator {
   id                BigInt            @id @default(autoincrement()) // Kunci utama
   titleSubmissionId Int?
   type              VerificatorType // Tipe Verificator (Pembimbing, Penguji, Pembimbing Akademik)
-  status            VerificatorStatus @default(active) // Status Verificator (Active/Inactive)
+  status            VerificatorStatus @default(pending) // Status Verificator (Active/Inactive)
   createdAt         DateTime          @default(now()) // Waktu pembuatan
   updatedAt         DateTime          @updatedAt // Waktu pembaruan
 
@@ -635,3 +635,14 @@ model Verificator {
   User                    User                      @relation(fields: [lecturerId], references: [id]) // Relasi dengan tabel User (Dosen)
   SubmissionRequiredValue SubmissionRequiredValue[]
 }
+
+model Announcement {
+  id                BigInt            @id @default(autoincrement()) // Kunci utama
+  description       String            @db.Text
+  judul             String
+  fileLampiran      String?
+  status            Boolean           @default(true)
+  createdAt         DateTime          @default(now()) // Waktu pembuatan
+  updatedAt         DateTime          @updatedAt // Waktu pembaruan
+}
+

@@ -127,6 +127,7 @@ export const PUT = async (
     const if_pass_then_give_access_type_id = formData
       .get("if_pass_then_give_access_type_id")
       ?.toString();
+    const is_newtitle = formData.get("is_newtitle") === "true";
     const requires_pembimbing = formData.get("requires_pembimbing") === "true";
     const requires_penguji = formData.get("requires_penguji") === "true";
     const requires_skill_group =
@@ -187,8 +188,8 @@ export const PUT = async (
             data: {
               typeId: BigInt(typeId.toString()), // Update typeId
               accessTypeId: BigInt(if_pass_then_give_access_type_id.toString()), // Update accessTypeId
-              formatId: BigInt(formatId.toString()) // Update formatId (meskipun formatId sudah ada, kita tetap update jika perlu)
-            }
+              formatId: BigInt(formatId.toString()), // Update formatId (meskipun formatId sudah ada, kita tetap update jika perlu)
+            },
           });
           console.log("New GetTypeAccessPermission created.");
         }
@@ -252,6 +253,7 @@ export const PUT = async (
         document_format_name,
         document_format_size: document_format_size || null, // Handle undefined or empty size
         is_primary,
+        is_newtitle_submission: is_newtitle,
         is_schedule_required,
         give_access_to_mahasiswa,
         if_pass_then_give_access_type_id: Number(
@@ -264,6 +266,7 @@ export const PUT = async (
         next_submission_uses_current_verif,
       },
     });
+    console.log(updatedFormat);
 
     const s3 = new S3Client({
       region: process.env.S3_REGION,

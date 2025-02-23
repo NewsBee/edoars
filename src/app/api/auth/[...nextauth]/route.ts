@@ -94,6 +94,19 @@ export const authOptions: NextAuthOptions = {
           } as User;
         }
 
+        if (
+          credentials.email === "testdosen@example.com" &&
+          credentials.password === "dosen123"
+        ) {
+          return {
+            id: "1021",
+            username: "Test dosen",
+            email: "testdosen@example.com",
+            name: "Dosen Testing",
+            role: "dosen", // Berikan role Kaprodi
+          } as User;
+        }
+
         // Cek apakah user sudah ada di database berdasarkan email
         // const existingUser = await prismadb.user.findUnique({
         //   where: { email: credentials.email },
@@ -131,7 +144,7 @@ export const authOptions: NextAuthOptions = {
           );
 
           const data = await response.json();
-          console.log(data)
+          // console.log(data);
 
           if (!response.ok || !data.attributes) {
             console.error("Failed to login, status code:", response.status);
@@ -172,7 +185,42 @@ export const authOptions: NextAuthOptions = {
               google_drive_folder_id: null,
             },
           });
+          if (upsertUser.role === "Mahasiswa") {
+            const types = await prisma.type.findMany({
+              where: {
+                status: "active",
+                formats: {
+                  some: {
+                    is_primary: true,
+                    give_access_to_mahasiswa: true,
+                  },
+                },
+              },
+            });
+            console.log(types);
 
+            if (types.length > 0) {
+              for (const type of types) {
+                const existingPermission =
+                  await prisma.studentTypeAccessPermission.findMany({
+                    where: {
+                      userId: upsertUser.id,
+                      typeId: type.id,
+                    },
+                  });
+                console.log(existingPermission);
+
+                if (!existingPermission) {
+                  await prisma.studentTypeAccessPermission.create({
+                    data: {
+                      userId: upsertUser.id,
+                      typeId: type.id,
+                    },
+                  });
+                }
+              }
+            }
+          }
           const user: User = {
             id: upsertUser.id.toString(),
             username: upsertUser.name,

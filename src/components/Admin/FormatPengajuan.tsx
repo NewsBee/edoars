@@ -19,6 +19,7 @@ interface FormData {
     thesisSchedule: boolean;
     scheduleRequired: boolean;
     allLecturersComment: boolean;
+    newtitle: boolean;
   };
   maxSupervisor: number;
   fileColumns: string[][];
@@ -53,6 +54,7 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
       thesisSchedule: false,
       scheduleRequired: false,
       allLecturersComment: false,
+      newtitle: false,
     },
     maxSupervisor: 1,
     fileColumns: [["", ""]],
@@ -212,6 +214,7 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
         requires_skill_group: "",
         scheduleRequired: "",
         allLecturersComment: "",
+        newtitle: "",
       },
     };
 
@@ -260,6 +263,10 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
     formDataToSend.append(
       "is_primary",
       formData.isMainFormat ? "true" : "false",
+    );
+    formDataToSend.append(
+      "is_newtitle",
+      formData.requires.newtitle ? "true" : "false",
     );
     formDataToSend.append(
       "is_schedule_required",
@@ -648,16 +655,16 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
                 />
                 <span>Memerlukan Kelompok Keahlian?</span>
               </div>
-              {/* <div className="flex items-center">
+              <div className="flex items-center">
                 <input
                   type="checkbox"
-                  name="thesisSchedule"
-                  checked={formData.requires.academicAdvisor}
+                  name="newtitle"
+                  checked={formData.requires.newtitle}
                   onChange={handleChange}
                   className="mr-2"
                 />
-                <span>Memerlukan Pembimbing Akademik?</span>
-              </div> */}
+                <span>Baru melakukan pengajuan judul?</span>
+              </div>
               <div className="flex items-center">
                 <input
                   type="checkbox"

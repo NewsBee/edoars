@@ -3,114 +3,152 @@
 import { FaClock, FaChalkboardTeacher, FaClipboardList } from "react-icons/fa";
 import React from "react";
 
-const ProposalSubmissionPage = () => {
+const ProposalSubmissionPage = ({ submission }: { submission: any }) => {
   return (
-    <div className="min-h-screen w-full  flex items-center justify-center px-4">
+    <div className="flex w-full justify-center px-4 mt-8">
       <div className="w-full rounded-lg bg-white p-6 shadow-lg">
-        <h1 className="text-center text-2xl font-bold text-gray-800 mb-2">
-          PERANCANGAN UI/UX APLIKASI MANAJEMEN SKRIPSI JURUSAN ARSITEKTUR
-          UNIVERSITAS TANJUNGPURA
+        <h1 className="mb-2 text-center text-2xl font-bold text-gray-800">
+          {submission.title}
         </h1>
-        <h2 className="text-center text-lg text-gray-600 mb-6">
-          DENGAN METODE ACTIVITY CENTERED DESIGN
+        <h2 className="mb-6 text-center text-lg text-gray-600">
+          {submission.skillGroup}
         </h2>
 
         {/* Status Pengajuan */}
         <div className="border-t border-gray-300 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <FaClipboardList className="text-yellow-500 text-lg" />
+              <FaClipboardList className="text-lg text-yellow-500" />
               <h3 className="text-sm font-medium text-gray-700">
                 Status Pengajuan
               </h3>
             </div>
-            <span className="rounded-md bg-yellow-100 px-4 py-1 text-yellow-600 text-sm font-medium">
-              Pending
+            <span className="rounded-md bg-yellow-100 px-4 py-1 text-sm font-medium text-yellow-600">
+              {submission.status.toUpperCase()}
             </span>
           </div>
-          <p className="text-sm mt-2 text-gray-500">Menunggu Keputusan</p>
+          <p className="mt-2 text-sm text-gray-500">Menunggu Keputusan</p>
         </div>
 
         {/* Jadwal Seminar */}
         <div className="border-t border-gray-300 py-4">
           <div className="flex items-center space-x-2">
-            <FaClock className="text-blue-500 text-lg" />
+            <FaClock className="text-lg text-blue-500" />
             <h3 className="text-sm font-medium text-gray-700">
               Jadwal Seminar
             </h3>
           </div>
-          <div className="mt-2 border rounded-lg bg-gray-50 px-4 py-3">
+          <div className="mt-2 rounded-lg border bg-gray-50 px-4 py-3">
             <p className="text-sm font-medium text-gray-600">
-              Hari, Tanggal-Bulan-Tahun-Jam
+              {submission.jadwal ? "Hari, Tanggal-Bulan-Tahun-Jam" : "Pending"}
             </p>
-            <p className="text-sm text-gray-500">Ruangan</p>
+            <p className="text-sm text-gray-500">Lab Praktikum</p>
           </div>
         </div>
 
         {/* Pembimbing dan Penguji */}
-        <div className="grid grid-cols-1 md:grid-cols-2 border-t border-gray-300 py-4 gap-y-4">
+        <div className="grid grid-cols-1 gap-y-4 border-t border-gray-300 py-4 md:grid-cols-2">
           {/* Pembimbing */}
           <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <FaChalkboardTeacher className="text-green-500 text-lg" />
+            <div className="mb-2 flex items-center space-x-2">
+              <FaChalkboardTeacher className="text-lg text-green-500" />
               <h3 className="text-sm font-medium text-gray-700">Pembimbing</h3>
             </div>
             <div className="space-y-2">
-              {[1, 2].map((index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between border rounded-lg bg-gray-50 px-4 py-3"
-                >
+              {submission.Verificator.filter(
+                (item: any) => item.type === "Pembimbing",
+              ).length > 0 ? (
+                submission.Verificator.filter(
+                  (item: any) => item.type === "Pembimbing",
+                ).map((item: any, i: any) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between rounded-lg border bg-gray-50 px-4 py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">
+                        {item.lecturerName}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {item.type} {i + 1}
+                      </p>
+                    </div>
+                    <span className="rounded-md bg-gray-200 px-4 py-1 text-sm font-medium text-gray-600">
+                      {item.status === "active" ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-between rounded-lg border bg-gray-50 px-4 py-3">
                   <div>
                     <p className="text-sm font-medium text-gray-700">
-                      Nama Dosen
+                      Belum ditentukan
                     </p>
-                    <p className="text-xs text-gray-500">
-                      Pembimbing {index}
-                    </p>
+                    <p className="text-xs text-gray-500">Pembimbing</p>
                   </div>
-                  <span className="rounded-md bg-gray-200 px-4 py-1 text-gray-600 text-sm font-medium">
+                  <span className="rounded-md bg-gray-200 px-4 py-1 text-sm font-medium text-gray-600">
                     Pending
                   </span>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
           {/* Penguji */}
           <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <FaChalkboardTeacher className="text-red-500 text-lg" />
+            <div className="mb-2 flex items-center space-x-2">
+              <FaChalkboardTeacher className="text-lg text-red-500" />
               <h3 className="text-sm font-medium text-gray-700">Penguji</h3>
             </div>
             <div className="space-y-2">
-              {[1, 2].map((index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between border rounded-lg bg-gray-50 px-4 py-3"
-                >
+              {submission.Verificator.filter(
+                (item: any) => item.type === "Penguji",
+              ).length > 0 ? (
+                submission.Verificator.filter(
+                  (item: any) => item.type === "Penguji",
+                ).map((item: any, i: any) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between rounded-lg border bg-gray-50 px-4 py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">
+                        {item.lecturerName}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {item.type} {i + 1}
+                      </p>
+                    </div>
+                    <span className="rounded-md bg-gray-200 px-4 py-1 text-sm font-medium text-gray-600">
+                      {item.status === "active" ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-between rounded-lg border bg-gray-50 px-4 py-3">
                   <div>
                     <p className="text-sm font-medium text-gray-700">
-                      Nama Dosen
+                      Belum ditentukan
                     </p>
-                    <p className="text-xs text-gray-500">
-                      Penguji {index}
-                    </p>
+                    <p className="text-xs text-gray-500">Penguji</p>
                   </div>
-                  <span className="rounded-md bg-gray-200 px-4 py-1 text-gray-600 text-sm font-medium">
+                  <span className="rounded-md bg-gray-200 px-4 py-1 text-sm font-medium text-gray-600">
                     Pending
                   </span>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
 
         {/* Button Detail */}
         <div className="mt-6 flex justify-end">
-          <button className="rounded-lg bg-blue-500 px-6 py-2 text-sm text-white shadow hover:bg-blue-600">
+            <button
+            onClick={() => window.location.href = `${window.location.pathname}/${submission.id}/detail`}
+            className="rounded-lg bg-blue-500 px-6 py-2 text-sm text-white shadow hover:bg-blue-600"
+            >
             Detail
-          </button>
+            </button>
         </div>
       </div>
     </div>

@@ -29,6 +29,10 @@ export const GET = async (
         id: true, // Ambil ID format
         name: true, // Ambil nama format
         is_primary: true, // Ambil status apakah format utama
+        createdAt: true, // Ambil tanggal dibuatnya
+      },
+      orderBy: {
+        createdAt: "asc", // Urutkan berdasarkan tanggal dibuatnya secara ascending
       },
     });
 
@@ -109,6 +113,8 @@ export const POST = async (req: Request) => {
     const is_primary = formData.get("is_primary") === "true";
     const is_schedule_required =
       formData.get("is_schedule_required") === "true";
+    const is_newtitle =
+      formData.get("is_newtitle") === "true";
     const give_access_to_mahasiswa =
       formData.get("give_access_to_mahasiswa") === "true";
     const if_pass_then_give_access_type_id = formData
@@ -143,10 +149,7 @@ export const POST = async (req: Request) => {
 
     // Validasi: Memastikan `name`, `is_primary`, dan `give_access_to_mahasiswa` tidak kosong
     // typeof give_access_to_mahasiswa === "undefined" ||
-    if (
-      !name ||
-      typeof is_primary === "undefined" 
-    ) {
+    if (!name || typeof is_primary === "undefined") {
       return NextResponse.json(
         {
           message:
@@ -165,10 +168,9 @@ export const POST = async (req: Request) => {
         name,
         key,
         note,
-      
       });
     });
-    console.log(fileColumns)
+    console.log(fileColumns);
 
     // Handling required values
     const ratingColumns = formData.getAll("requiredValues[]"); // Similarly for rating columns
@@ -181,7 +183,7 @@ export const POST = async (req: Request) => {
         note,
       });
     });
-    console.log(ratingColumns)
+    console.log(ratingColumns);
 
     // Validating required fields
     // if (
@@ -205,7 +207,7 @@ export const POST = async (req: Request) => {
         typeId: BigInt(typeId.toString()),
       },
     });
-    console.log(existingSubmission)
+    console.log(existingSubmission);
     if (existingSubmission) {
       return NextResponse.json(
         { message: "You already have an active format for this type" },
@@ -213,44 +215,42 @@ export const POST = async (req: Request) => {
       );
     }
 
-
-    if(is_primary){
+    if (is_primary) {
       const existingPrimary = await prismadb.format.findFirst({
         where: {
           is_primary: true,
-          typeId : BigInt(typeId.toString()),
-         },
+          typeId: BigInt(typeId.toString()),
+        },
       });
-      console.log(existingPrimary)
+      console.log(existingPrimary);
       if (existingPrimary) {
         return NextResponse.json(
-          { message: "'Only one format can be primary. Please remove the primary flag from the existing format first.'" },
+          {
+            message:
+              "'Only one format can be primary. Please remove the primary flag from the existing format first.'",
+          },
           { status: 404 },
         );
       }
     }
 
-  
-
-    if(give_access_to_mahasiswa && is_primary==true){
+    if (give_access_to_mahasiswa && is_primary == true) {
       const students = await prismadb.user.findMany({
-        where: { role: 'Mahasiswa' }, // Only students
+        where: { role: "Mahasiswa" }, // Only students
       });
 
       // For each student, create an access entry in student_type_access_permissions
-      for(let student of students){
+      for (let student of students) {
         await prismadb.studentTypeAccessPermission.create({
           data: {
             userId: student.id,
-            typeId:  BigInt(typeId.toString()), // This type corresponds to the format's type
+            typeId: BigInt(typeId.toString()), // This type corresponds to the format's type
           },
-        })
+        });
       }
-
     }
 
-    console.log(if_pass_then_give_access_type_id)
-    
+    console.log(if_pass_then_give_access_type_id);
 
     // Create the new format
     let newFormat = await prismadb.format.create({
@@ -261,6 +261,7 @@ export const POST = async (req: Request) => {
         document_format_size,
         is_primary,
         is_schedule_required,
+        is_newtitle_submission: is_newtitle,
         give_access_to_mahasiswa,
         if_pass_then_give_access_type_id: Number(
           if_pass_then_give_access_type_id,
@@ -273,15 +274,15 @@ export const POST = async (req: Request) => {
       },
     });
 
-    if(is_primary == true){
-      if(if_pass_then_give_access_type_id){
+    if (is_primary == true) {
+      if (if_pass_then_give_access_type_id) {
         await prismadb.getTypeAccessPermission.create({
           data: {
             typeId: BigInt(typeId.toString()),
             accessTypeId: BigInt(if_pass_then_give_access_type_id.toString()),
-            formatId: BigInt(newFormat.id.toString())
-          }
-        })
+            formatId: BigInt(newFormat.id.toString()),
+          },
+        });
       }
     }
 
@@ -359,7 +360,7 @@ export const POST = async (req: Request) => {
         }),
       ),
     );
-    console.log("createdRequiredFiles: "+ createdRequiredFiles)
+    console.log("createdRequiredFiles: " + createdRequiredFiles);
 
     // Create Required Values
     const createdRequiredValues = await Promise.all(
@@ -374,8 +375,7 @@ export const POST = async (req: Request) => {
         }),
       ),
     );
-    console.log("createdRequiredValues :" + createdRequiredValues)
-
+    console.log("createdRequiredValues :" + createdRequiredValues);
 
     // Convert BigInt to string for the response
     const convertBigIntToString = (obj: unknown): unknown => {
@@ -404,7 +404,7 @@ export const POST = async (req: Request) => {
       createdRequiredFiles: createdRequiredFiles.map((file) =>
         convertBigIntToString(file),
       ),
-      createdRequiredValues: createdRequiredValues.map((value:any) =>
+      createdRequiredValues: createdRequiredValues.map((value: any) =>
         convertBigIntToString(value),
       ),
     };

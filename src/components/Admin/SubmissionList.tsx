@@ -88,7 +88,7 @@ export default function SubmissionList({ slug }: { slug: string }) {
       }
     }
     fetchData();
-  }, []);
+  }, [slug]);
   console.log(submissions);
 
   // 2. Filter & sort setiap ada perubahan di state filter
@@ -204,6 +204,7 @@ export default function SubmissionList({ slug }: { slug: string }) {
             <tr className="border-b bg-gray-100">
               <th className="p-3 text-left">No</th>
               <th className="p-3 text-left">Judul</th>
+              <th className="p-3 text-left">Nama Mahasiswa</th>
               <th className="p-3 text-left">Pihak Verifikasi</th>
               <th className="p-3 text-left">Status</th>
               <th className="p-3 text-left">Tanggal Pengajuan</th>
@@ -215,18 +216,16 @@ export default function SubmissionList({ slug }: { slug: string }) {
               const formattedDate = new Date(item.createdAt).toLocaleString(
                 "id-ID",
               );
-              const verifikatorStr = (item.Verificator || [])
-                .map((v) => v.lecturerName)
-                .join(", ");
 
               return (
                 <tr key={item.id} className="border-b hover:bg-gray-50">
                   <td className="p-3">{index + 1}</td>
                   <td className="p-3">{item.title}</td>
+                  <td className="p-3">{item.User?.name || "Tidak ada nama"}</td>
                   <td className="p-3">
                     {item.Verificator && item.Verificator.length > 0 ? (
                       <div className="flex flex-col gap-2">
-                        {item.Verificator.map((verifier, i) => (
+                        {item.Verificator.map((verifier) => (
                           <div
                             key={verifier.id}
                             className="rounded border bg-gray-50 p-2"
@@ -247,27 +246,55 @@ export default function SubmissionList({ slug }: { slug: string }) {
                       </span>
                     )}
                   </td>
-
-                  {/* <td className="p-3">{verifikatorStr || "Belum Ada Verifikator"}</td> */}
-                  <td className="p-3 capitalize">{item.status}</td>
-                  <td className="p-3">{formattedDate}</td>
                   <td className="p-3">
-                    <button className="mr-1 rounded bg-blue-500 px-2 py-1 text-white hover:bg-blue-600">
-                      Ubah
-                    </button>
-                    <button className="mr-1 rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600">
-                      Hapus
-                    </button>
-                    {/* <button className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded">
-                      Hasil
-                    </button> */}
+                    <span
+                      className={`inline-block rounded-full px-3 py-1 text-sm font-semibold ${
+                        item.status === "approved"
+                          ? "bg-green-100 text-green-800"
+                          : item.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : item.status === "on process"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    {new Date(item.createdAt).toLocaleString("id-ID", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "numeric",
+                    })}
+                  </td>
+                  <td className="p-3">
+                    <div className="flex gap-2">
+                        <button
+                        className="rounded bg-blue-500 px-2 py-1 text-white shadow-md transition duration-300 ease-in-out hover:bg-blue-600 hover:shadow-lg"
+                        onClick={() =>
+                           (window.location.href = `${window.location.origin}${window.location.pathname}/${item.id}`)
+                        }
+                        >
+                        Ubah
+                        </button>
+                      <button className="rounded bg-red-500 px-2 py-1 text-white shadow-md transition duration-300 ease-in-out hover:bg-red-600 hover:shadow-lg">
+                        Hapus
+                      </button>
+                      {/* <button className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded shadow-md transition duration-300 ease-in-out">
+                          Hasil
+                        </button> */}
+                    </div>
                   </td>
                 </tr>
               );
             })}
             {filteredSubmissions.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-3 text-center text-gray-500">
+                <td colSpan={7} className="p-3 text-center text-gray-500">
                   Tidak ada data yang cocok.
                 </td>
               </tr>
