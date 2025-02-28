@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ToastContainer, toast } from "react-toastify";
+import {  toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const EditTypeSubmission = ({ id }: { id: string }) => {
@@ -90,7 +90,6 @@ const EditTypeSubmission = ({ id }: { id: string }) => {
 
   return (
     <div className="w-full bg-white p-8 shadow-md rounded-lg">
-      <ToastContainer position="top-right" autoClose={3000} />
       <h1 className="text-xl font-bold text-gray-800 mb-6">Ubah Tipe Pengajuan</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Nama */}

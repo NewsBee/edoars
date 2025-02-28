@@ -3,6 +3,8 @@ import prisma from "@/lib/prismadb"; // Prisma client
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prismadb from "@/lib/prismadb";
+import bcrypt from "bcryptjs";
+
 
 export const PUT = async (
   req: Request,
@@ -30,6 +32,7 @@ export const PUT = async (
     } = requestData;
 
     const newStatus = status === "Aktif" ? "1" : "0";
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     console.log("selectedTypes", selectedTypes);
     console.log("name", name);
@@ -40,7 +43,7 @@ export const PUT = async (
       data: {
         name,
         email,
-        password,
+        password:hashedPassword,
         role,
         status: newStatus,
         phone_number: phone_number || null,
@@ -50,9 +53,10 @@ export const PUT = async (
     });
 
     // Step 1: Get the current StudentPermissions for the user
-    const currentPermissions = await prisma.studentTypeAccessPermission.findMany({
-      where: { userId },
-    });
+    const currentPermissions =
+      await prisma.studentTypeAccessPermission.findMany({
+        where: { userId },
+      });
 
     // Step 2: Ensure that selectedTypes is an array of strings, not objects
     // Convert typeIds to BigInt for comparison
@@ -64,15 +68,16 @@ export const PUT = async (
     const selectedTypeIds = selectedTypes.map((type: any) => {
       return BigInt(type.typeId); // Access the correct property before converting
     });
-    
+
     // Step 3: Find the types that need to be added (newly checked types)
     const typesToAdd = selectedTypeIds.filter(
-      (typeId: BigInt) => !currentPermissions.some((perm) => perm.typeId === typeId)
+      (typeId: BigInt) =>
+        !currentPermissions.some((perm) => perm.typeId === typeId),
     );
 
     // Step 4: Find the types that need to be removed (unchecked types)
     const typesToRemove = currentPermissions.filter(
-      (perm) => !selectedTypeIds.includes(perm.typeId)
+      (perm) => !selectedTypeIds.includes(perm.typeId),
     );
 
     // Step 5: Add new permissions (unchecked types)
@@ -110,9 +115,6 @@ export const PUT = async (
     );
   }
 };
-
-
-
 
 export const DELETE = async (
   req: Request,
@@ -166,11 +168,11 @@ export async function GET(
     const convertBigIntToString = (obj: unknown): unknown => {
       // Handle arrays
       if (Array.isArray(obj)) {
-        return obj.map(item => convertBigIntToString(item));
+        return obj.map((item) => convertBigIntToString(item));
       }
 
       // Handle objects (excluding null)
-      if (typeof obj === 'object' && obj !== null) {
+      if (typeof obj === "object" && obj !== null) {
         const result: Record<string, unknown> = {};
         for (const key in obj) {
           if (obj.hasOwnProperty(key)) {
@@ -182,7 +184,7 @@ export async function GET(
       }
 
       // Convert BigInt to string
-      if (typeof obj === 'bigint') {
+      if (typeof obj === "bigint") {
         return obj.toString();
       }
 
@@ -190,7 +192,7 @@ export async function GET(
     };
 
     // Convert all BigInt values in the users data to string
-    const response = users.map(user => convertBigIntToString(user));
+    const response = users.map((user) => convertBigIntToString(user));
 
     // If no users found, return a 404 response
     if (response.length === 0) {

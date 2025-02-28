@@ -15,7 +15,7 @@ export const PUT = async (req: Request, { params }: { params: { id: string } }) 
     const body = await req.json();
     // { name, key, note, formatId }
 
-    const { name, key, note, formatId } = body;
+    const { name, key, note, formatId, bobot } = body;
     console.log(body)
     console.log(valueId)
     
@@ -33,6 +33,7 @@ export const PUT = async (req: Request, { params }: { params: { id: string } }) 
         name: name || existingValue.name,
         key: key || existingValue.key,
         note: note || existingValue.note,
+        bobot: bobot || existingValue.bobot,
         formatId: formatId ? BigInt(formatId) : existingValue.formatId,
       },
     });

@@ -95,17 +95,18 @@ export const PUT = async (
     }
 
     const existingVerificator = await prismadb.verificator.findFirst({
-        where: {
-            lecturerId: Number(body.lecturerId),
-            submissionId: body.submissionId ? BigInt(body.submissionId) : null,
-        },
+      where: {
+        lecturerId: Number(body.lecturerId),
+        submissionId: body.submissionId ? BigInt(body.submissionId) : null,
+      },
     });
+    console.log(existingVerificator)
 
     if (existingVerificator) {
-        return NextResponse.json(
-            { message: "Lecturer is already a verificator for this submission" },
-            { status: 400 },
-        );
+      return NextResponse.json(
+        { message: "Lecturer is already a verificator for this submission" },
+        { status: 400 },
+      );
     }
 
     const updatedVerificator = await prismadb.verificator.update({

@@ -33,10 +33,6 @@ interface FormatTypeProps {
 export default function TambahFormat({ idtipe }: FormatTypeProps) {
   const router = useRouter();
   const formDataToSends = new FormData();
-  formDataToSends.append("age", "30");
-  formDataToSends.forEach((value, key) => {
-    console.log(key, value); // Logs: "age 30"
-  });
   console.log(formDataToSends)
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -58,7 +54,7 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
     },
     maxSupervisor: 1,
     fileColumns: [["", ""]],
-    ratingColumns: [["", "", ""]],
+    ratingColumns: [["", "", "", ""]],
   });
 
   const [errorMessages, setErrorMessages] = useState({
@@ -198,7 +194,7 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
       ratingColumns: updatedColumns,
     }));
   };
-  // console.log(formData.ifPassGiveAccessTypes)
+  console.log(formData)
 
   // Tombol Submit
   const handleSubmit = async () => {
@@ -329,6 +325,7 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
     const requiredValues = formData.ratingColumns.map((row) => ({
       name: row[0],
       key: row[1],
+      weight: parseFloat(row[2]),
       note: row[3],
     }));
 
@@ -342,65 +339,6 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
       console.log(key, value); // Logs: "age 30"
     });
 
-    // // Pengolahan data yang akan dikirimkan ke API
-    // const requiredFiles =
-    //   formData.fileColumns.length > 0
-    //     ? formData.fileColumns
-    //         .filter((row) => row[0].trim() !== "" && row[1].trim() !== "") // Filter row yang kosong
-    //         .map((row) => ({
-    //           name: row[0],
-    //           key: row[1],
-    //           note: row[2],
-    //           typeId: idtipe,
-    //         }))
-    //     : [];
-
-    // const requiredValues =
-    //   formData.ratingColumns.length > 0
-    //     ? formData.ratingColumns
-    //         .filter(
-    //           (row) =>
-    //             row[0].trim() !== "" &&
-    //             row[1].trim() !== "" &&
-    //             row[3].trim() !== "",
-    //         ) // Filter row yang kosong
-    //         .map((row) => ({
-    //           name: row[0],
-    //           key: row[1],
-    //           note: row[3],
-    //         }))
-    //     : [];
-
-    // const data: any = {
-    //   name: formData.name,
-    //   typeId: BigInt(idtipe).toString(),
-    //   document_format: formData.documentFile ? formData.documentFile as Blob : "",
-    //   document_format_name: formData.name,
-    //   document_format_size: formData.documentFile
-    //     ? `${formData.documentFile.size} bytes`
-    //     : "",
-    //   is_primary: formData.isMainFormat,
-    //   is_schedule_required: formData.requires.thesisSchedule,
-    //   give_access_to_mahasiswa: formData.shareAccess,
-    //   if_pass_then_give_access_type_id: formData.ifPassGiveAccessTypes,
-    //   requires_pembimbing: formData.requires.supervisor,
-    //   requires_penguji: formData.requires.examiner,
-    //   requires_skill_group: formData.requires.academicAdvisor,
-    //   requires_academic_advisor: formData.requires.thesisSchedule,
-    //   next_submission_uses_current_verif: false,
-    // };
-    // console.log(formData.documentFile)
-    // console.log(data)
-
-    // // Only add requiredFiles and requiredValues if they are not empty
-    // if (requiredFiles.length > 0) {
-    //   data.requiredFiles = requiredFiles;
-    // }
-
-    // if (requiredValues.length > 0) {
-    //   data.requiredValues = requiredValues;
-    // }
-    // console.log(requiredFiles);
     console.log(formData);
     console.log(formDataToSend);
 
@@ -799,7 +737,6 @@ export default function TambahFormat({ idtipe }: FormatTypeProps) {
                     <input
                       type="number"
                       value={row[2]}
-                      disabled
                       onChange={(e) => handleRatingColumnChange(e, rowIndex, 2)}
                       className="w-full rounded border border-gray-300 p-2"
                     />

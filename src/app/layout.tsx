@@ -17,20 +17,18 @@ export default function RootLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // const pathname = usePathname();
-
   useEffect(() => {
     setTimeout(() => setLoading(false), 1000);
   }, []);
 
   return (
     <html lang="en">
-      <ToastContainer />
-      <Providers>
-        <body suppressHydrationWarning={true}>
+      <body suppressHydrationWarning={true}>
+        <Providers>
           {loading ? <Loader /> : children}
-        </body>
-      </Providers>
+        </Providers>
+        <ToastContainer />
+      </body>
     </html>
   );
 }

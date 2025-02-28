@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -114,12 +114,12 @@ model TitleSubmission {
 // }
 
 model Submission {
-  id                   BigInt      @id @default(autoincrement())
+  id                   BigInt           @id @default(autoincrement())
   typeId               BigInt
   userId               Int
   title                String
-  description          String?     @db.Text
-  status               String      @default("pending") // pending, processed, approved, rejected, repeated
+  description          String?          @db.Text
+  status               SubmissionStatus @default(pending)
   jadwal               DateTime? // Jadwal seminar
   requestJadwal        DateTime? // Jadwal seminar
   room                 String? // Ruang seminar
@@ -132,14 +132,16 @@ model Submission {
   academicYear         String? // Tahun akademik pengajuan
   amountOfSks          String? // Jumlah SKS mahasiswa
   ipkNow               String? // Indeks Prestasi Kumulatif mahasiswa
-  isReadByTataUsaha    Boolean     @default(false) // Jika sudah atau belum dilihat staff bagian administrasi
-  isReadyToBeProcessed Boolean     @default(false) // Pengajuan sudah siap diproses
+  isReadByTataUsaha    Boolean          @default(false) // Jika sudah atau belum dilihat staff bagian administrasi
+  isReadyToBeProcessed Boolean          @default(false) // Pengajuan sudah siap diproses
   spotaSubmissionId    String? // ID untuk sistem SPOTA (jika relevan)
   semester             String? // Semester pengajuan dilakukan
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
-  skillGroupId         Int?       
-  SkillGroup           SkillGroup? @relation(fields: [skillGroupId], references: [id], name: "SkillGroupToSubmissions")
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  skillGroupId         Int?
+  SkillGroup           SkillGroup?      @relation(fields: [skillGroupId], references: [id], name: "SkillGroupToSubmissions")
+  decision             Decision?        // Hasil keputusan
+  recommendTitleChange String?          // Rekomendasi perubahan judul
 
   // RELASI
   User                    User                      @relation(fields: [userId], references: [id])
@@ -150,8 +152,16 @@ model Submission {
   Grading                 Grading[]
   AssignedLecturers       AssignedLecturer[]
   DiscussionRoom          DiscussionRoom[]
-  SubmissionRequiredValue SubmissionRequiredValue[] 
+  SubmissionRequiredValue SubmissionRequiredValue[]
   Verificator             Verificator[]
+}
+
+enum Decision {
+  MenungguKeputusan
+  DiterimaDenganPerbaikan
+  Diterima
+  Diulang
+  Ditolak
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -239,8 +249,8 @@ model ApprovalLog {
 // }
 model RequiredFile {
   id                   BigInt   @id @default(autoincrement())
-  name                 String   @unique // Nama file yang harus diupload
-  key                  String   @unique // Kode atau kata kunci unik untuk file
+  name                 String // Nama file yang harus diupload
+  key                  String // Kode atau kata kunci unik untuk file
   note                 String? // Catatan tambahan (nullable)
   formatId             BigInt // Relasi ke format_id
   // typeId               BigInt
@@ -362,8 +372,8 @@ model SkillGroup {
   updatedAt DateTime @updatedAt
   status    String   @default("aktif")
 
-  Submissions Submission[] @relation("SkillGroupToSubmissions")
-  Lecturers  SkillGroupLecturer[]
+  Submissions Submission[]         @relation("SkillGroupToSubmissions")
+  Lecturers   SkillGroupLecturer[]
 }
 
 model SkillGroupLecturer {
@@ -450,6 +460,8 @@ model StudentTypeAccessPermission {
 
   User User @relation(fields: [userId], references: [id])
   Type Type @relation(fields: [typeId], references: [id])
+
+  @@unique([userId, typeId])
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -571,9 +583,10 @@ model Grading {
 model RequiredValue {
   id       BigInt  @id @default(autoincrement())
   name     String
-  key      String  @unique
-  note     String? // Nullable
+  key      String  
+  note     String?   @db.Text // Nullable and can be long text
   formatId BigInt
+  bobot    Float?
   // type_id  BigInt?
 
   // type                    Type?                     @relation(fields: [type_id], references: [id])
@@ -625,10 +638,13 @@ model Verificator {
   status            VerificatorStatus @default(pending) // Status Verificator (Active/Inactive)
   createdAt         DateTime          @default(now()) // Waktu pembuatan
   updatedAt         DateTime          @updatedAt // Waktu pembaruan
-
+  note              String?           @db.Text // Catatan tambahan
+  totalScore        Float?            // Total nilai penilaian
+  averageScore      Float?            // Rata-rata nilai penilaian
+  // score             Float?             // Nilai penilaian
   // RELASI
-  submissionId BigInt? // Jika berhubungan dengan submission
-  Submission   Submission? @relation(fields: [submissionId], references: [id]) // Relasi dengan tabel submissions
+  submissionId      BigInt? // Jika berhubungan dengan submission
+  Submission        Submission?       @relation(fields: [submissionId], references: [id]) // Relasi dengan tabel submissions
 
   lecturerId              Int // Dosen yang terlibat sebagai Verificator
   TitleSubmission         TitleSubmission?          @relation(fields: [titleSubmissionId], references: [id])
@@ -637,12 +653,11 @@ model Verificator {
 }
 
 model Announcement {
-  id                BigInt            @id @default(autoincrement()) // Kunci utama
-  description       String            @db.Text
-  judul             String
-  fileLampiran      String?
-  status            Boolean           @default(true)
-  createdAt         DateTime          @default(now()) // Waktu pembuatan
-  updatedAt         DateTime          @updatedAt // Waktu pembaruan
+  id           BigInt   @id @default(autoincrement()) // Kunci utama
+  description  String   @db.Text
+  judul        String
+  fileLampiran String?
+  status       Boolean  @default(true)
+  createdAt    DateTime @default(now()) // Waktu pembuatan
+  updatedAt    DateTime @updatedAt // Waktu pembaruan
 }
-

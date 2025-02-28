@@ -9,8 +9,7 @@ export const GET = async (
 ) => {
   const session = await getServerSession(authOptions);
 
-  // Uncomment the following lines if you want to restrict access to Admin users only
-  if (!session ) {
+  if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
@@ -40,7 +39,16 @@ export const GET = async (
             RequiredFile: true,
           },
         },
-        SubmissionRequiredValue: true,
+        SubmissionRequiredValue: {
+          include: {
+            requiredValue: true,
+            verificator: {
+              include: {
+                User: true,
+              },
+            },
+          },
+        },
         SkillGroup: true,
         Verificator: {
           include: {
@@ -50,17 +58,6 @@ export const GET = async (
       },
     });
 
-    if (submission) {
-      const typeFormats = await prismadb.format.findMany({
-        where: {
-          typeId: submission.typeId,
-          is_primary: true,
-        },
-      });
-      submission.Type.formats = typeFormats;
-    }
-    console.log(submission);
-
     if (!submission) {
       return NextResponse.json(
         { message: "Submission not found" },
@@ -68,13 +65,86 @@ export const GET = async (
       );
     }
 
+    const requiredFiles = await prismadb.requiredFile.findMany({
+      where: {
+        formatId: submission.Type.formats[0].id,
+      },
+      include: {
+        SubmissionRequiredFiles: true,
+      },
+    });
+    const requiredValues = await prismadb.requiredValue.findMany({
+      where: {
+        formatId: submission.Type.formats[0].id,
+      },
+    });
+
+    console.log(requiredValues);
+    console.log(submission);
+
+    const verificatorScores = submission.SubmissionRequiredValue.reduce(
+      (
+        acc: {
+          [key: string]: {
+            total: number;
+            count: number;
+            name: string;
+            note: string;
+          };
+        },
+        val,
+      ) => {
+        if (val.value !== null) {
+          const verificatorIdStr = val.verificatorId.toString();
+          const weight = val.requiredValue.bobot ?? 1; // Default 1 jika bobot null
+          if (!acc[verificatorIdStr]) {
+            acc[verificatorIdStr] = {
+              total: 0,
+              count: 0,
+              name: val.verificator.User.name,
+              note: val.verificator.note ?? "",
+            };
+          }
+          acc[verificatorIdStr].total += parseFloat(val.value) * weight;
+          acc[verificatorIdStr].count += weight;
+        }
+        return acc;
+      },
+      {},
+    );
+
+    const verificatorAverages = Object.keys(verificatorScores).map((key) => ({
+      verificatorId: key,
+      average: verificatorScores[key].total / verificatorScores[key].count,
+      name: verificatorScores[key].name,
+      note: verificatorScores[key].note,
+    }));
+    console.log("Verificator Averages:", verificatorAverages);
+
+    const approvedFiles = submission.RequiredFiles.filter(
+      (file: { status: string }) => file.status === "approved",
+    ).length;
+    const totalFiles = submission.RequiredFiles.length;
+    console.log("Approved Files:", approvedFiles, "Total Files:", totalFiles);
+
     const skillGroups = await prismadb.skillGroup.findMany({
       where: {
         status: "Aktif",
       },
     });
-    console.log(skillGroups)
-
+    console.log(skillGroups);
+    const requiredFilesFormatted = requiredFiles.map((file: any) => ({
+      id: file.id.toString(),
+      name: file.name,
+      key: file.key,
+      note: file.note,
+      formatId: file.formatId.toString(),
+      isVerificatorCanEdit: file.isVerificatorCanEdit,
+      isVerificatorCanView: file.isVerificatorCanView,
+      createdAt: file.createdAt,
+      updatedAt: file.updatedAt,
+    }));
+    console.log(requiredFilesFormatted);
     const formattedSubmission = {
       id: String(submission.id),
       typeId: String(submission.typeId),
@@ -97,11 +167,16 @@ export const GET = async (
       isReadByTataUsaha: submission.isReadByTataUsaha,
       isReadyToBeProcessed: submission.isReadyToBeProcessed,
       spotaSubmissionId: submission.spotaSubmissionId,
+      recommendTitleChange: submission.recommendTitleChange,
+      decision: submission.decision,
       semester: submission.semester,
       createdAt: submission.createdAt,
       updatedAt: submission.updatedAt,
       skillGroupId: String(submission.skillGroupId),
       skillGroup: submission.SkillGroup?.name,
+      verificatorAverages,
+      approvedFiles,
+      totalFiles,
       RequiredFiles: submission.RequiredFiles.map((file: any) => ({
         id: file.id.toString(),
         titleSubmissionId: file.titleSubmissionId,
@@ -164,22 +239,35 @@ export const GET = async (
           is_schedule_required: format.is_schedule_required,
           is_newtitle_submission: format.is_newtitle_submission,
           give_access_to_mahasiswa: format.give_access_to_mahasiswa,
-          if_pass_then_give_access_type_id: format.if_pass_then_give_access_type_id,
+          if_pass_then_give_access_type_id:
+            format.if_pass_then_give_access_type_id,
           requires_pembimbing: format.requires_pembimbing,
           requires_penguji: format.requires_penguji,
           requires_skill_group: format.requires_skill_group,
           requires_academic_advisor: format.requires_academic_advisor,
-          next_submission_uses_current_verif: format.next_submission_uses_current_verif,
+          next_submission_uses_current_verif:
+            format.next_submission_uses_current_verif,
           createdAt: format.createdAt,
           updatedAt: format.updatedAt,
           status: format.status,
         })),
       },
+      RequiredValues: requiredValues.map((value: any) => ({
+        id: value.id.toString(),
+        name: value.name,
+        note: value.note,
+        bobot: value.bobot,
+        formatId: value.formatId.toString(),
+        createdAt: value.createdAt,
+        updatedAt: value.updatedAt,
+      })),
       SubmissionRequiredValue: submission.SubmissionRequiredValue.map(
         (value: any) => ({
           id: value.id.toString(),
           value: value.value,
+          note: value.note,
           requiredValueId: value.requiredValueId.toString(),
+          verificatorId: value.verificatorId.toString(),
           createdAt: value.createdAt,
           updatedAt: value.updatedAt,
         }),
@@ -188,6 +276,9 @@ export const GET = async (
         id: verifier.id.toString(),
         type: verifier.type,
         status: verifier.status,
+        note: verifier.note,
+        totalScore: verifier.totalScore,
+        averageScore: verifier.averageScore,
         submissionId: verifier.submissionId
           ? verifier.submissionId.toString()
           : null,
@@ -200,10 +291,14 @@ export const GET = async (
         id: group.id.toString(),
         name: group.name,
       })),
+      requiredFilesFormatted,
     };
-    console.log(formattedSubmission)
+    console.log(formattedSubmission);
 
-    return NextResponse.json({ formattedSubmission }, { status: 200 });
+    return NextResponse.json(
+      { formattedSubmission, requiredFilesFormatted },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Error fetching submission:", error);
     return NextResponse.json(
@@ -212,7 +307,6 @@ export const GET = async (
     );
   }
 };
-
 
 export const PUT = async (
   req: NextRequest,
@@ -227,7 +321,7 @@ export const PUT = async (
   try {
     const { id } = params;
     const body = await req.json();
-    console.log(body)
+    console.log(body);
 
     if (!id) {
       return NextResponse.json(
@@ -236,6 +330,134 @@ export const PUT = async (
       );
     }
 
+    const { verificatorId, verificatorStatus } = body;
+
+    if (!verificatorId || !verificatorStatus) {
+      return NextResponse.json(
+        { message: "Verificator ID and status are required" },
+        { status: 400 },
+      );
+    }
+
+    const updatedVerificator = await prismadb.verificator.update({
+      where: {
+        id: BigInt(verificatorId),
+      },
+      data: {
+        status: verificatorStatus,
+      },
+    });
+
+    console.log(updatedVerificator);
+
+    if (body.status === "approved") {
+      const submission = await prismadb.submission.findUnique({
+        where: {
+          id: Number(id),
+        },
+        include: {
+          RequiredFiles: true,
+          Verificator: {
+            include: {
+              User: true,
+            },
+          },
+          Type: {
+            include: {
+              formats: true,
+            },
+          },
+        },
+      });
+
+      if (!submission) {
+        return NextResponse.json(
+          { message: "Submission not found" },
+          { status: 404 },
+        );
+      }
+      console.log(submission);
+      console.log(submission.Type.formats[0].if_pass_then_give_access_type_id);
+
+      const approvedFiles = submission.RequiredFiles.filter(
+        (file: { status: string }) => file.status === "approved",
+      ).length;
+      const totalFiles = submission.RequiredFiles.length;
+
+      if (approvedFiles !== totalFiles) {
+        return NextResponse.json(
+          { message: "Not all required files are approved" },
+          { status: 400 },
+        );
+      }
+      // Cek apakah ada if_pass_then_give_access_type_id
+      const newTypeId =
+        submission.Type.formats[0]?.if_pass_then_give_access_type_id;
+      console.log(newTypeId);
+      if (newTypeId) {
+        // Cek apakah sudah ada entri di StudentTypeAccessPermission
+        const existingPermission =
+          await prismadb.studentTypeAccessPermission.findFirst({
+            where: {
+              userId: submission.userId,
+              typeId: BigInt(newTypeId),
+            },
+          });
+
+        if (!existingPermission) {
+          // 1) Buat entri di StudentTypeAccessPermission
+          const studentType = await prismadb.studentTypeAccessPermission.create(
+            {
+              data: {
+                userId: submission.userId,
+                typeId: BigInt(newTypeId),
+              },
+            },
+          );
+          console.log(studentType);
+        }
+
+        // Cek apakah sudah ada submission baru dengan typeId yang sama
+        const existingNewSubmission = await prismadb.submission.findFirst({
+          where: {
+            userId: submission.userId,
+            typeId: BigInt(newTypeId),
+          },
+        });
+
+        if (!existingNewSubmission) {
+          // 2) Buat submission baru
+          const newSubmission = await prismadb.submission.create({
+            data: {
+              typeId: BigInt(newTypeId),
+              userId: submission.userId,
+              title: submission.title,
+              description: submission.description,
+              academicYear: submission.academicYear,
+              amountOfSks: submission.amountOfSks,
+              ipkNow: submission.ipkNow,
+              skillGroupId: submission.skillGroupId,
+              status: "pending", // Biarkan default saja
+            },
+          });
+          console.log(newSubmission);
+
+          // 3) Salin Verificator
+          for (const v of submission.Verificator) {
+            await prismadb.verificator.create({
+              data: {
+                type: v.type,
+                status: "pending", // atau biarkan sesuai kebutuhan
+                lecturerId: v.lecturerId,
+                submissionId: BigInt(newSubmission.id.toString()),
+                note: v.note,
+              },
+            });
+          }
+        }
+      }
+    }
+    console.log(body.semester);
     const updatedSubmission = await prismadb.submission.update({
       where: {
         id: BigInt(id),
@@ -263,7 +485,6 @@ export const PUT = async (
     };
 
     return NextResponse.json({ serializedSubmission }, { status: 200 });
-
   } catch (error) {
     console.error("Error updating submission:", error);
     return NextResponse.json(

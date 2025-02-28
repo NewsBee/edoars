@@ -4,50 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createHash } from "crypto";
+import { uploadFileToS3 } from "@/lib/s3Utils";
 
-const s3 = new S3Client({
-  region: process.env.S3_REGION,
-  endpoint: process.env.S3_ENDPOINT_URL,
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY ?? "",
-    secretAccessKey: process.env.S3_SECRET_KEY ?? "",
-  },
-});
-
-// Function to upload files to S3 & return the URL
-const uploadFileToS3 = async (
-  file: File,
-  submissionFileId: bigint,
-): Promise<string> => {
-  const arrayBuffer = await file.arrayBuffer();
-  const fileBuffer = Buffer.from(arrayBuffer);
-
-  // Creating a timestamp for the file
-  const timestamp = new Date().toISOString().replace(/[-:T.]/g, ""); // Clean timestamp for filename
-
-  // Combine elements for hashing
-  const hashInput = `${submissionFileId}_${timestamp}_${file.name}`;
-  const hash = createHash("sha256").update(hashInput).digest("hex");
-
-  // Create a more secure, hashed file name
-  const formattedFileName = `${submissionFileId}_${timestamp}_${hash}`;
-
-  // Define the S3 key (file path) with the new formatted name
-  const key = `${submissionFileId}/${formattedFileName}`;
-
-  await s3.send(
-    new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET_NAME,
-      Key: key,
-      Body: fileBuffer,
-      ContentType: file.type,
-      ACL: "public-read",
-    }),
-  );
-
-  const fileUrl = `${process.env.S3_ENDPOINT_URL}/${process.env.S3_BUCKET_NAME}/${key}`;
-  return fileUrl;
-};
 
 // API untuk mengambil data pengajuan (submissions) berdasarkan tipe pengajuan
 export const GET = async (req: NextRequest) => {
@@ -63,10 +21,6 @@ export const GET = async (req: NextRequest) => {
       );
     }
 
-    // Menyaring berdasarkan tipe pengajuan jika ada, default ambil semua
-    // const whereCondition = type ? { type: { slug: type } } : {};
-
-    // const whereCondition = { type: { slug:  } };
     // Ambil session pengguna (Admin) untuk memastikan akses
     const session = await getServerSession(authOptions);
 
@@ -92,7 +46,15 @@ export const GET = async (req: NextRequest) => {
             RequiredFile: true, // Menyertakan file yang dibutuhkan untuk pengajuan
           },
         },
-        SubmissionRequiredValue: true, // Menyertakan nilai yang diperlukan untuk pengajuan
+        SubmissionRequiredValue: {
+          include: {
+            verificator: {
+              include: {
+                User: true,
+              },
+            },
+          },
+        }, // Menyertakan nilai yang diperlukan untuk pengajuan
         SkillGroup: true, // Mengambil informasi kelompok keahlian yang relevan
         Verificator: {
           include: {
@@ -101,101 +63,153 @@ export const GET = async (req: NextRequest) => {
         }, // Mengambil data verifikator (dosen pembimbing atau penguji)
       },
     });
-    console.log(submissions);
 
-    const formattedSubmissions = submissions.map((submission) => ({
-      id: String(submission.id),
-      typeId: String(submission.typeId),
-      userId: submission.userId,
-      title: submission.title,
-      description: submission.description,
-      status: submission.status,
-      jadwal: submission.jadwal,
-      room: submission.room,
-      recordUrl: submission.recordUrl,
-      grade: submission.grade,
-      gradeDescription: submission.gradeDescription,
-      score: submission.score,
-      gradeStatus: submission.gradeStatus,
-      documentFormat: submission.documentFormat,
-      academicYear: submission.academicYear,
-      amountOfSks: submission.amountOfSks,
-      ipkNow: submission.ipkNow,
-      isReadByTataUsaha: submission.isReadByTataUsaha,
-      isReadyToBeProcessed: submission.isReadyToBeProcessed,
-      spotaSubmissionId: submission.spotaSubmissionId,
-      semester: submission.semester,
-      createdAt: submission.createdAt,
-      updatedAt: submission.updatedAt,
-      skillGroupId: String(submission.skillGroupId),
-      skillGroup: submission.SkillGroup ? submission.SkillGroup : null,
-      User: {
-        id: submission.User.id,
-        external_user_id: submission.User.external_user_id,
-        name: submission.User.name,
-        email: submission.User.email,
-        phone_number: submission.User.phone_number,
-        nim: submission.User.nim,
-        password: submission.User.password,
-        nip: submission.User.nip,
-        role: submission.User.role,
-        nama_satker: submission.User.nama_satker,
-        id_satker: submission.User.id_satker,
-        periode_masuk: submission.User.periode_masuk,
-        google_drive_folder_id: submission.User.google_drive_folder_id,
-        status: submission.User.status,
-        signature_image: submission.User.signature_image,
-        profile_image: submission.User.profile_image,
-        createdAt: submission.User.createdAt,
-        updatedAt: submission.User.updatedAt,
-        last_login: submission.User.last_login,
+    const verificatorScores = submissions.reduce(
+      (
+        acc: {
+          [key: string]: {
+            total: number;
+            count: number;
+            name: string;
+            note: string;
+          };
+        },
+        val,
+      ) => {
+        if (val.SubmissionRequiredValue.length > 0) {
+          const verificatorIdStr = val.Verificator[0].id.toString();
+          if (!acc[verificatorIdStr]) {
+            acc[verificatorIdStr] = {
+              total: 0,
+              count: 0,
+              name: val.Verificator[0].User.name,
+              note: val.Verificator[0].note ?? "",
+            };
+          }
+          acc[verificatorIdStr].total += parseFloat(
+            val.SubmissionRequiredValue[0].value,
+          );
+          acc[verificatorIdStr].count += 1;
+        }
+        return acc;
       },
-      Type: {
-        id: String(submission.Type.id),
-        name: submission.Type.name,
-        slug: submission.Type.slug,
-        color: submission.Type.color,
-        description: submission.Type.description,
-        status: submission.Type.status,
-        createdAt: submission.Type.createdAt,
-        updatedAt: submission.Type.updatedAt,
+      {} as {
+        [key: string]: {
+          total: number;
+          count: number;
+          name: string;
+          note: string;
+        };
       },
-      // Menangani RequiredFiles yang berisi BigInt
-      //   RequiredFiles: submission.RequiredFiles.map((file) => ({
-      //     id: file.id.toString(), // Mengonversi BigInt menjadi string
-      //     name: file.name,
-      //     key: file.key,
-      //     note: file.note,
-      //     formatId: file.formatId.toString(), // Mengonversi BigInt menjadi string
-      //     createdAt: file.createdAt,
-      //     updatedAt: file.updatedAt,
-      //   })),
-      // Menangani SubmissionRequiredValue yang berisi BigInt
-      SubmissionRequiredValue: submission.SubmissionRequiredValue.map(
-        (value) => ({
-          id: value.id.toString(), // Mengonversi BigInt menjadi string
-          value: value.value,
-          requiredValueId: value.requiredValueId.toString(), // Mengonversi BigInt menjadi string
-          createdAt: value.createdAt,
-          updatedAt: value.updatedAt,
-        }),
-      ),
-      // Menangani SkillGroup yang berisi BigInt
-      Verificator: submission.Verificator.map((verifier) => ({
-        id: verifier.id.toString(), // Mengonversi BigInt menjadi string
-        type: verifier.type,
-        status: verifier.status,
-        submissionId: verifier.submissionId
-          ? verifier.submissionId.toString()
-          : null,
-        lecturerId: verifier.lecturerId,
-        createdAt: verifier.createdAt,
-        updatedAt: verifier.updatedAt,
-        lecturerName: verifier.User ? verifier.User.name : null,
-      })),
-      // Verificator: submission.Verificator
+    );
+
+    const verificatorAverages = Object.keys(verificatorScores).map((key) => ({
+      verificatorId: key,
+      average: verificatorScores[key].total / verificatorScores[key].count,
+      name: verificatorScores[key].name,
+      note: verificatorScores[key].note,
     }));
-    console.log(formattedSubmissions);
+    console.log("Verificator Averages:", verificatorAverages);
+
+    const approvedFiles = submissions.reduce(
+      (acc: number, submission) =>
+        acc +
+        submission.RequiredFiles.filter(
+          (file: { status: string }) => file.status === "Approved",
+        ).length,
+      0,
+    );
+    const totalFiles = submissions.reduce(
+      (acc: number, submission) => acc + submission.RequiredFiles.length,
+      0,
+    );
+    console.log("Approved Files:", approvedFiles, "Total Files:", totalFiles);
+
+    const formattedSubmissions = submissions.map((submission) => {
+      return {
+        id: String(submission.id),
+        typeId: String(submission.typeId),
+        userId: submission.userId,
+        title: submission.title,
+        description: submission.description,
+        status: submission.status,
+        jadwal: submission.jadwal,
+        room: submission.room,
+        recordUrl: submission.recordUrl,
+        grade: submission.grade,
+        gradeDescription: submission.gradeDescription,
+        score: submission.score,
+        gradeStatus: submission.gradeStatus,
+        documentFormat: submission.documentFormat,
+        academicYear: submission.academicYear,
+        amountOfSks: submission.amountOfSks,
+        ipkNow: submission.ipkNow,
+        isReadByTataUsaha: submission.isReadByTataUsaha,
+        isReadyToBeProcessed: submission.isReadyToBeProcessed,
+        spotaSubmissionId: submission.spotaSubmissionId,
+        semester: submission.semester,
+        createdAt: submission.createdAt,
+        updatedAt: submission.updatedAt,
+        skillGroupId: String(submission.skillGroupId),
+        skillGroup: submission.SkillGroup ? submission.SkillGroup : null,
+        verificatorAverages,
+        approvedFiles,
+        totalFiles,
+        User: {
+          id: submission.User.id,
+          external_user_id: submission.User.external_user_id,
+          name: submission.User.name,
+          email: submission.User.email,
+          phone_number: submission.User.phone_number,
+          nim: submission.User.nim,
+          password: submission.User.password,
+          nip: submission.User.nip,
+          role: submission.User.role,
+          nama_satker: submission.User.nama_satker,
+          id_satker: submission.User.id_satker,
+          periode_masuk: submission.User.periode_masuk,
+          google_drive_folder_id: submission.User.google_drive_folder_id,
+          status: submission.User.status,
+          signature_image: submission.User.signature_image,
+          profile_image: submission.User.profile_image,
+          createdAt: submission.User.createdAt,
+          updatedAt: submission.User.updatedAt,
+          last_login: submission.User.last_login,
+        },
+        Type: {
+          id: String(submission.Type.id),
+          name: submission.Type.name,
+          slug: submission.Type.slug,
+          color: submission.Type.color,
+          description: submission.Type.description,
+          status: submission.Type.status,
+          createdAt: submission.Type.createdAt,
+          updatedAt: submission.Type.updatedAt,
+        },
+        SubmissionRequiredValue: submission.SubmissionRequiredValue.map(
+          (value) => ({
+            id: value.id.toString(), // Mengonversi BigInt menjadi string
+            value: value.value,
+            requiredValueId: value.requiredValueId.toString(), // Mengonversi BigInt menjadi string
+            createdAt: value.createdAt,
+            updatedAt: value.updatedAt,
+          }),
+        ),
+        Verificator: submission.Verificator.map((verifier) => ({
+          id: verifier.id.toString(), // Mengonversi BigInt menjadi string
+          type: verifier.type,
+          status: verifier.status,
+          submissionId: verifier.submissionId
+            ? verifier.submissionId.toString()
+            : null,
+          lecturerId: verifier.lecturerId,
+          createdAt: verifier.createdAt,
+          updatedAt: verifier.updatedAt,
+          lecturerName: verifier.User ? verifier.User.name : null,
+        })),
+      };
+    });
+    console.log("Formatted Submissions:", formattedSubmissions);
 
     return NextResponse.json({ formattedSubmissions }, { status: 200 });
   } catch (error) {
@@ -227,7 +241,7 @@ export const POST = async (req: NextRequest) => {
     if (!type) {
       return NextResponse.json(
         { message: "Tipe pengajuan tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -263,14 +277,16 @@ export const POST = async (req: NextRequest) => {
           const requiredFileId = formData.get(`${key}_id`) as string;
 
           // Save the file URL in the SubmissionRequiredFile table
-          const createSubmission = await prismadb.submissionRequiredFile.create({
-            data: {
-              submissionId: newSubmission.id,
-              file_url: fileUrl, // Store the file URL
-              requiredFileId: BigInt(requiredFileId), // Assuming file required ID is provided
-              status: "pending", // Default status for new file
+          const createSubmission = await prismadb.submissionRequiredFile.create(
+            {
+              data: {
+                submissionId: newSubmission.id,
+                file_url: fileUrl, // Store the file URL
+                requiredFileId: BigInt(requiredFileId), // Assuming file required ID is provided
+                status: "pending", // Default status for new file
+              },
             },
-          });
+          );
           console.log(createSubmission);
         }
       }
@@ -278,12 +294,11 @@ export const POST = async (req: NextRequest) => {
     // Log the activity
     await prismadb.activitySubmissionLog.create({
       data: {
-      submissionId: newSubmission.id,
-      userId: Number(session?.user.id),
-      activity: `Submission created with title: ${title}`,
+        submissionId: newSubmission.id,
+        userId: Number(session?.user.id),
+        activity: `Submission created with title: ${title}`,
       },
     });
-
 
     return NextResponse.json({
       message: "Submission berhasil dibuat",
@@ -293,7 +308,7 @@ export const POST = async (req: NextRequest) => {
     console.error(error);
     return NextResponse.json(
       { message: "Terjadi kesalahan saat membuat submission." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
@@ -331,7 +346,6 @@ export const POST = async (req: NextRequest) => {
 //       },
 //     });
 //     console.log(newSubmission);
-
 
 //     // Handle file uploads (if any)
 //     const fileKeys: string[] = [];

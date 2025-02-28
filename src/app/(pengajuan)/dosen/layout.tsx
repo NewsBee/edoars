@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar/SidabarMahasiswa";
 import SidebarDosen from "@/components/Sidebar/SidebarDosen";
+import HeaderAdmin from "@/components/Header/HeaderAdmin";
 
 export default function MahasiswaLayout({
   children,
@@ -21,13 +22,15 @@ export default function MahasiswaLayout({
         <SidebarDosen
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
-          role="Dosen"
-          hasTitle={hasTitle}
         />
 
         {/* Main Content */}
         <div className="flex flex-1 flex-col">
-          <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <HeaderAdmin
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+          />
+
           <main className="flex-1 ">{children}</main>
         </div>
       </div>

@@ -49,7 +49,7 @@ export const PUT = async (
     });
 
     return NextResponse.json(
-      { message: "Tipe pengajuan berhasil diperbarui.", updatedType },
+      { message: "Tipe pengajuan berhasil diperbarui." },
       { status: 200 },
     );
   } catch (error: any) {

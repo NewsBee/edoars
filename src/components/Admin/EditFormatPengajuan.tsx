@@ -48,6 +48,7 @@ interface RequiredValue {
   name: string;
   key: string;
   note: string;
+  bobot: number;
 }
 
 export default function EditFormatPengajuan({
@@ -78,7 +79,7 @@ export default function EditFormatPengajuan({
     },
     maxSupervisor: 1,
     fileColumns: [["", "", "", ""]],
-    ratingColumns: [["", "", ""]],
+    ratingColumns: [["", "", "", ""]],
   });
 
   const [availableTypes, setAvailableTypes] = useState<
@@ -104,6 +105,8 @@ export default function EditFormatPengajuan({
   }, []);
 
   console.log(formData)
+  console.log(fileColumns)
+  console.log(ratingColumns)
 
   useEffect(() => {
 
@@ -169,7 +172,8 @@ export default function EditFormatPengajuan({
               value.name,
               value.key,
               value.note,
-            ]) || [["", "", "", ""]],
+              value.bobot,
+            ]) || [["", "", "", "",""]],
           });
         } else {
           console.error("Failed to fetch format data:", result.message);
@@ -360,43 +364,6 @@ export default function EditFormatPengajuan({
     formDataToSend.forEach((value, key) => {
       console.log(key, value); // Logs: "age 30"
     });
-    // Pengolahan data yang akan dikirimkan ke API
-    // const requiredFiles =
-    // formData.fileColumns.length > 0
-    //   ? formData.fileColumns
-    //       .filter(
-    //         (row) => // Memeriksa apakah kolom ID tidak kosong
-    //           row[1].trim() !== "" && // Memeriksa apakah kolom 'name' tidak kosong
-    //           row[2].trim() !== "" && // Memeriksa apakah kolom 'key' tidak kosong
-    //           row[3].trim() !== "" // Memeriksa apakah kolom 'note' tidak kosong
-    //       ) // Filter row yang kosong
-    //       .map((row) => ({
-    //         id: row[0] || null, // Jika ID kosong, beri nilai null
-    //         name: row[1],
-    //         key: row[2],
-    //         note: row[3],
-    //         typeId: idtipe,
-    //       }))
-    //   : [];
-    //   formDataToSend.append("requiredFiles[]", JSON.stringify(requiredFiles));
-
-    // const requiredValues =
-    //   formData.ratingColumns.length > 0
-    //     ? formData.ratingColumns
-    //         .filter(
-    //           (row) =>
-    //             row[1].trim() !== "" &&
-    //             row[2].trim() !== "" &&
-    //             row[3].trim() !== "",
-    //         ) // Filter row yang kosong
-    //         .map((row) => ({
-    //           id: row[0] || null,
-    //           name: row[1],
-    //           key: row[2],
-    //           note: row[3],
-    //         }))
-    //     : [];
-    //   formDataToSend.append("requiredValues[]", JSON.stringify(requiredValues));
 
     console.log(formData.fileColumns);
     console.log(requiredFiles);
@@ -715,140 +682,10 @@ export default function EditFormatPengajuan({
 
       {/* Tables */}
       <div className="mt-6">
-        {/* Table for File Yang Dibutuhkan */}
-        {/* File Yang Dibutuhkan Section */}
-        {/* <div className="space-y-4">
-          <div className="border-b border-gray-300 pb-2 text-center text-lg font-medium text-gray-700">
-            File Yang Dibutuhkan
-          </div>
-
-          <table className="min-w-full table-auto border-collapse">
-            <thead>
-              <tr>
-                <th className="border px-4 py-2 text-left">Nama</th>
-                <th className="border px-4 py-2 text-left">Kunci</th>
-                <th className="border px-4 py-2 text-left">Catatan</th>
-                <th className="border px-4 py-2 text-left">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.fileColumns.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  <td className="border px-4 py-2">
-                    <input
-                      type="text"
-                      value={row[1]}
-                      onChange={(e) => handleFileColumnChange(e, rowIndex, 1)}
-                      className="w-full rounded border border-gray-300 p-2"
-                    />
-                  </td>
-                  <td className="border px-4 py-2">
-                    <input
-                      type="text"
-                      value={row[2]}
-                      onChange={(e) => handleFileColumnChange(e, rowIndex, 2)}
-                      className="w-full rounded border border-gray-300 p-2"
-                    />
-                  </td>
-                  <td className="border px-4 py-2">
-                    <input
-                      type="text"
-                      value={row[3]}
-                      onChange={(e) => handleFileColumnChange(e, rowIndex, 3)}
-                      className="w-full rounded border border-gray-300 p-2"
-                    />
-                  </td>
-                  <td className="border px-4 py-2">
-                    <button
-                      onClick={() => handleRemoveFileColumn(rowIndex)}
-                      className="text-blue-600"
-                    >
-                      Hapus
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <button
-            onClick={addFileColumn}
-            className="mt-4 w-full rounded bg-[#0abef9] px-4 py-2 text-black"
-          >
-            Tambah Kolom Baru
-          </button>
-        </div> */}
+  
         <FileRequired idformat={idformat} />
 
         <RequiredValue idformat={idformat} />
-
-        {/* Penilaian Yang Dibutuhkan Section */}
-        {/* <div className="mt-6">
-          <div className="border-b border-gray-300 pb-2 text-center text-lg font-medium text-gray-700">
-            Penilaian Yang Dibutuhkan
-          </div>
-          <table className="min-w-full table-auto border-collapse">
-            <thead>
-              <tr>
-                <th className="border px-4 py-2 text-left">Nama</th>
-                <th className="border px-4 py-2 text-left">Kunci</th>
-                <th className="border px-4 py-2 text-left">Bobot (0-100)</th>
-                <th className="border px-4 py-2 text-left">Catatan</th>
-                <th className="border px-4 py-2 text-left">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.ratingColumns.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  <td className="border px-4 py-2">
-                    <input
-                      type="text"
-                      value={row[1]}
-                      onChange={(e) => handleRatingColumnChange(e, rowIndex, 1)}
-                      className="w-full rounded border border-gray-300 p-2"
-                    />
-                  </td>
-                  <td className="border px-4 py-2">
-                    <input
-                      type="text"
-                      value={row[2]}
-                      onChange={(e) => handleRatingColumnChange(e, rowIndex, 2)}
-                      className="w-full rounded border border-gray-300 p-2"
-                    />
-                  </td>
-                  <td className="border px-4 py-2">
-                    <input
-                      type="number"
-                      disabled
-                      className="w-full rounded border border-gray-300 p-2"
-                    />
-                  </td>
-                  <td className="border px-4 py-2">
-                    <input
-                      type="text"
-                      value={row[3]}
-                      onChange={(e) => handleRatingColumnChange(e, rowIndex, 3)}
-                      className="w-full rounded border border-gray-300 p-2"
-                    />
-                  </td>
-                  <td className="border px-4 py-2">
-                    <button
-                      onClick={() => handleRemoveRatingColumn(rowIndex)}
-                      className="text-blue-600"
-                    >
-                      Hapus
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <button
-            onClick={addRatingColumn}
-            className="mt-4 w-full rounded bg-[#47fe89] px-4 py-2 text-black"
-          >
-            Tambah Kolom Baru
-          </button>
-        </div> */}
       </div>
 
       <div className="mt-6 flex justify-end">

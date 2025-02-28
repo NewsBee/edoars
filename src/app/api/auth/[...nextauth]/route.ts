@@ -2,6 +2,7 @@ import NextAuth, { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import prismadb from "@/lib/prismadb";
+import bcrypt from "bcryptjs";
 
 type User = {
   id: string;
@@ -108,26 +109,47 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Cek apakah user sudah ada di database berdasarkan email
-        // const existingUser = await prismadb.user.findUnique({
-        //   where: { email: credentials.email },
-        // });
+        const existingUser = await prismadb.user.findUnique({
+          where: { email: credentials.email },
+        });
 
-        // if (existingUser) {
-        //   // Jika user ditemukan di database, return data user dari database
-        //   return {
-        //     id: existingUser.id.toString(),
-        //     username: existingUser.name,
-        //     email: existingUser.email,
-        //     name: existingUser.name,
-        //     role: existingUser.role,
-        //     nim: existingUser.nim || undefined,
-        //     google_drive_folder_id: existingUser.google_drive_folder_id || undefined,
-        //     status: existingUser.status || "1",
-        //   } as User;
-        // }
+        if (existingUser) {
+          // Verifikasi password
+          if (!existingUser.password) {
+            return null;
+          }
+          // const hashedPassword = await bcrypt.hash(credentials.password, 10);
+          // console.log(hashedPassword);
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            existingUser.password,
+          );
+          // console.log(isPasswordValid);
 
+
+          if (isPasswordValid) {
+            // Jika password valid, return data user dari database
+            return {
+              id: existingUser.id.toString(),
+              username: existingUser.name,
+              email: existingUser.email,
+              name: existingUser.name,
+              role: existingUser.role,
+              nim: existingUser.nim || undefined,
+              google_drive_folder_id:
+                existingUser.google_drive_folder_id || undefined,
+              status: existingUser.status || "1",
+            } as User;
+          } else {
+            // Jika password tidak valid, return null
+            return null;
+          }
+        }
+
+        // Jika user tidak ditemukan di database, hit API eksternal
+        let response;
         try {
-          const response = await fetch(
+          response = await fetch(
             "https://api.sevimaplatform.com/siakadcloud/v1/user/login",
             {
               method: "POST",
@@ -142,102 +164,118 @@ export const authOptions: NextAuthOptions = {
               }),
             },
           );
+        } catch (error) {
+          console.error("Fetch error:", error);
+          return null;
+        }
 
-          const data = await response.json();
-          // console.log(data);
+        let data;
+        try {
+          data = await response.json();
+        } catch (error) {
+          console.error("Error parsing JSON:", error);
+          return null;
+        }
 
-          if (!response.ok || !data.attributes) {
-            console.error("Failed to login, status code:", response.status);
-            console.error("Failed to login, status code:", response);
-            return null;
-          }
+        console.log(data);
 
-          const prisma = prismadb;
+        if (!response.ok || !data.attributes) {
+          console.error("Failed to login, status code:", response.status);
+          console.error("Failed to login, status code:", response);
+          return null;
+        }
 
-          const userData = data.attributes;
-          const role = userData.role[0];
+        const prisma = prismadb;
 
-          // Sinkronkan data pengguna ke dalam database
-          const upsertUser = await prisma.user.upsert({
+        const userData = data.attributes;
+        const role = userData.role[0];
+
+        // Hash password sebelum menyimpan ke database
+        const hashedPassword = await bcrypt.hash(credentials.password, 10);
+
+        // Sinkronkan data pengguna ke dalam database
+        const upsertUser = await prisma.user.upsert({
+          where: {
+            external_user_id: data.attributes.user_id, // ID dari API eksternal
+          },
+          update: {
+            name: data.attributes.nama,
+            email: data.attributes.email,
+            nim: data.attributes.role[0]?.nim || null,
+            role: data.attributes.role[0]?.nama_role || "User",
+            nama_satker: data.attributes.role[0]?.nama_satker || null,
+            id_satker: data.attributes.role[0]?.id_satker || null,
+            periode_masuk: data.attributes.role[0]?.periode_masuk || null,
+            status: data.attributes.status_aktif || "1",
+            password: hashedPassword, // Simpan password yang di-hash
+          },
+          create: {
+            external_user_id: data.attributes.user_id,
+            name: data.attributes.nama,
+            email: data.attributes.email,
+            nim: data.attributes.role[0]?.nim || null,
+            role: data.attributes.role[0]?.nama_role || "User",
+            nama_satker: data.attributes.role[0]?.nama_satker || null,
+            id_satker: data.attributes.role[0]?.id_satker || null,
+            periode_masuk: data.attributes.role[0]?.periode_masuk || null,
+            status: data.attributes.status_aktif || "1",
+            google_drive_folder_id: null,
+            password: hashedPassword, // Simpan password yang di-hash
+          },
+        });
+
+        if (upsertUser.role === "Mahasiswa") {
+          const types = await prisma.type.findMany({
             where: {
-              external_user_id: data.attributes.user_id, // ID dari API eksternal
-            },
-            update: {
-              name: data.attributes.nama,
-              email: data.attributes.email,
-              nim: data.attributes.role[0]?.nim || null,
-              role: data.attributes.role[0]?.nama_role || "User",
-              nama_satker: data.attributes.role[0]?.nama_satker || null,
-              id_satker: data.attributes.role[0]?.id_satker || null,
-              periode_masuk: data.attributes.role[0]?.periode_masuk || null,
-              status: data.attributes.status_aktif || "1",
-            },
-            create: {
-              external_user_id: data.attributes.user_id,
-              name: data.attributes.nama,
-              email: data.attributes.email,
-              nim: data.attributes.role[0]?.nim || null,
-              role: data.attributes.role[0]?.nama_role || "User",
-              nama_satker: data.attributes.role[0]?.nama_satker || null,
-              id_satker: data.attributes.role[0]?.id_satker || null,
-              periode_masuk: data.attributes.role[0]?.periode_masuk || null,
-              status: data.attributes.status_aktif || "1",
-              google_drive_folder_id: null,
-            },
-          });
-          if (upsertUser.role === "Mahasiswa") {
-            const types = await prisma.type.findMany({
-              where: {
-                status: "active",
-                formats: {
-                  some: {
-                    is_primary: true,
-                    give_access_to_mahasiswa: true,
-                  },
+              status: "active",
+              formats: {
+                some: {
+                  is_primary: true,
+                  give_access_to_mahasiswa: true,
                 },
               },
-            });
-            console.log(types);
+            },
+          });
+          console.log(types);
 
-            if (types.length > 0) {
-              for (const type of types) {
-                const existingPermission =
-                  await prisma.studentTypeAccessPermission.findMany({
-                    where: {
-                      userId: upsertUser.id,
-                      typeId: type.id,
-                    },
-                  });
-                console.log(existingPermission);
+          if (types.length > 0) {
+            for (const type of types) {
+              const existingPermission =
+                await prisma.studentTypeAccessPermission.findMany({
+                  where: {
+                    userId: upsertUser.id,
+                    typeId: type.id,
+                  },
+                });
+              console.log(existingPermission);
 
-                if (!existingPermission) {
+              if (existingPermission.length === 0) {
+                const createStudentType =
                   await prisma.studentTypeAccessPermission.create({
                     data: {
                       userId: upsertUser.id,
                       typeId: type.id,
                     },
                   });
-                }
+                console.log(createStudentType);
               }
             }
           }
-          const user: User = {
-            id: upsertUser.id.toString(),
-            username: upsertUser.name,
-            email: upsertUser.email,
-            name: upsertUser.name,
-            role: upsertUser.role,
-            nim: upsertUser.nim || undefined,
-            google_drive_folder_id:
-              upsertUser.google_drive_folder_id || undefined,
-            status: upsertUser.status || "1",
-          };
-
-          return user;
-        } catch (error) {
-          console.error("Login error:", error);
-          return null;
         }
+
+        const user: User = {
+          id: upsertUser.id.toString(),
+          username: upsertUser.name,
+          email: upsertUser.email,
+          name: upsertUser.name,
+          role: upsertUser.role,
+          nim: upsertUser.nim || undefined,
+          google_drive_folder_id:
+            upsertUser.google_drive_folder_id || undefined,
+          status: upsertUser.status || "1",
+        };
+
+        return user;
       },
     }),
   ],

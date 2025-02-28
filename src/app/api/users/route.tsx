@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prismadb"; // Prisma client
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import bcrypt from "bcryptjs";
 
 export const POST = async (req: Request) => {
   const session = await getServerSession(authOptions);
@@ -33,12 +34,13 @@ export const POST = async (req: Request) => {
     // console.log(nim)
     // console.log(nip)
     const newStatus = status === "Aktif" ? "1" : "0";
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
-        password,
+        password: hashedPassword,
         role,
         status: newStatus,
         phone_number: phone_number || null,

@@ -29,7 +29,6 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
     Type,
   } = submissionData || {};
 
-
   const { data: session } = useSession();
 
   const [formData, setFormData] = useState<{
@@ -68,7 +67,24 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
   const [selectedLecturer, setSelectedLecturer] = useState("");
   const [type, setType] = useState("");
   const [verificator, setVerificator] = useState("");
+  const [verificatorStatus, setVerificatorStatus] = useState(() => {
+    const verificator = Verificator.find(
+      (v: any) => v.lecturerName === session?.user?.name,
+    );
+    return verificator ? verificator.status : "";
+  });
+
+  const [verificatorId, setVerificatorId] = useState(() => {
+    const verificator = Verificator.find(
+      (v: any) => v.lecturerName === session?.user?.name,
+    );
+    return verificator ? verificator.id : "";
+  });
   const [lecturers, setLecturers] = useState<any[]>([]);
+
+  console.log(Verificator);
+  console.log(verificatorStatus);
+  console.log(verificatorId);
 
   useEffect(() => {
     fetch("/api/dosen")
@@ -123,6 +139,7 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
         },
         body: JSON.stringify({
           lecturerId,
+          submissionId: submissionData.id,
         }),
       });
 
@@ -167,7 +184,6 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
     ) || [];
   console.log(filteredLecturers);
 
-
   useEffect(() => {
     if (submissionData) {
       setFormData({
@@ -203,8 +219,8 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
     return <div>Loading...</div>;
   }
 
-  console.log(submissionData)
-
+  console.log(submissionData);
+  console.log(verificatorStatus);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -218,6 +234,13 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (
+      formData.hasilKeputusan === "approved" &&
+      submissionData.approvedFiles !== submissionData.totalFiles
+    ) {
+      toast.error("Ada file yang belum Anda setujui.");
+      return;
+    }
     try {
       const response = await fetch(`/api/submission/${id}`, {
         method: "PUT",
@@ -235,6 +258,8 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
           ipkNow: formData.ipk,
           semester: formData.semester,
           skillGroupId: formData.bidangKeahlian,
+          verificatorStatus,
+          verificatorId,
         }),
       });
 
@@ -310,6 +335,7 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
                 className="mt-2 w-full border border-gray-300 dark:bg-gray-700 dark:text-white"
               />
             </div>
+
             {/* Verificator Section */}
             <div className="mt-8">
               <h3 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-gray-100">
@@ -391,6 +417,7 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
                 name="judul"
                 value={formData.judul}
                 onChange={handleChange}
+                disabled={session?.user?.role === "Dosen"}
                 className="mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white"
               />
             </div>
@@ -432,6 +459,7 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
                 name="bidangKeahlian"
                 value={formData.bidangKeahlian}
                 onChange={handleChange}
+                disabled={session?.user?.role === "Dosen"}
                 className="mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white"
               >
                 {formData.bidangKeahlian === "null" && (
@@ -445,33 +473,38 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
               </select>
             </div>
             {/* Jadwal */}
-            <div className="mb-6">
-              <label
-                htmlFor="jadwal"
-                className="block text-lg font-medium text-gray-700 dark:text-gray-300"
-              >
-                Tentukan jadwal seminar
-              </label>
-              <input
-                type="datetime-local"
-                id="jadwal"
-                name="jadwal"
-                value={formData.jadwal}
-                onChange={handleChange}
-                disabled={Type?.formats[0]?.is_newtitle_submission}
-                className={`mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white ${
-                  Type?.formats[0]?.is_newtitle_submission
-                    ? "bg-gray-300 dark:bg-gray-600"
-                    : ""
-                }`}
-              />
-              {Type?.formats[0]?.is_newtitle_submission && (
-                <p className="mt-2 text-sm text-red-500">
-                  Pengajuan ini tidak memerlukan jadwal.
-                </p>
-              )}
-            </div>
-            {/* Ruangan */}
+            {Type?.formats[0]?.is_schedule_required && (
+              <div className="mb-6">
+                <label
+                  htmlFor="jadwal"
+                  className="block text-lg font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Tentukan jadwal seminar
+                </label>
+                <input
+                  type="datetime-local"
+                  id="jadwal"
+                  name="jadwal"
+                  value={formData.jadwal}
+                  onChange={handleChange}
+                  disabled={
+                    session?.user?.role === "Dosen" ||
+                    Type?.formats[0]?.is_newtitle_submission
+                  }
+                  className={`mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white ${
+                    session?.user?.role === "Dosen" ||
+                    Type?.formats[0]?.is_newtitle_submission
+                      ? "bg-gray-300 dark:bg-gray-600"
+                      : ""
+                  }`}
+                />
+                {Type?.formats[0]?.is_newtitle_submission && (
+                  <p className="mt-2 text-sm text-red-500">
+                    Pengajuan ini tidak memerlukan jadwal.
+                  </p>
+                )}
+              </div>
+            )}
             <div className="mb-6">
               <label
                 htmlFor="ruangan"
@@ -485,9 +518,13 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
                 name="ruangan"
                 value={formData.ruangan}
                 onChange={handleChange}
-                disabled={Type?.formats[0]?.is_newtitle_submission}
+                disabled={
+                  Type?.formats[0]?.is_newtitle_submission ||
+                  session?.user?.role === "Dosen"
+                }
                 className={`mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white ${
-                  Type?.formats[0]?.is_newtitle_submission
+                  Type?.formats[0]?.is_newtitle_submission ||
+                  session?.user?.role === "Dosen"
                     ? "bg-gray-300 dark:bg-gray-600"
                     : ""
                 }`}
@@ -499,8 +536,8 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
               )}
               {!Type?.formats[0]?.is_newtitle_submission && (
                 <p className="mt-2 text-sm text-gray-500">
-                  <strong>Catatan:</strong> Jika ruangan belum dipilih maka akan
-                  ditentukan saat meeting room.
+                  <strong>Catatan:</strong> Ruangan akan ditentukan oleh bagian
+                  administrasi.
                 </p>
               )}
             </div>
@@ -516,88 +553,121 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
                 id="hasilKeputusan"
                 name="hasilKeputusan"
                 value={formData.hasilKeputusan}
+                disabled={session?.user?.role === "Dosen"}
                 onChange={handleChange}
-                className="mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white"
+                className={`mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white ${
+                  session?.user?.role === "Dosen"
+                    ? "bg-gray-300 dark:bg-gray-600"
+                    : ""
+                }`}
               >
-                <option value="Pending">Pending</option>
-                <option value="On Proccess">On Proccess</option>
-                <option value="Accepted">Accepted</option>
-                <option value="Rejected">Rejected</option>
+                <option value="pending">Pending</option>
+                <option value="processed">On Process</option>
+                <option value="approved">Accepted</option>
+                <option value="rejected">Rejected</option>
+                <option value="repeated">Repeated</option>
               </select>
             </div>
             {/* Jumlah SKS dan IPK */}
-            <div className="mb-6 flex space-x-4">
-              <div className="w-1/2">
+            {session?.user?.role !== "Dosen" && (
+              <>
+                <div className="mb-6 flex space-x-4">
+                  <div className="w-1/2">
+                    <label
+                      htmlFor="jumlahSKS"
+                      className="block text-lg font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      Jumlah SKS saat ini
+                    </label>
+                    <input
+                      type="number"
+                      id="jumlahSKS"
+                      name="jumlahSKS"
+                      value={formData.jumlahSKS}
+                      onChange={handleChange}
+                      className="mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div className="w-1/2">
+                    <label
+                      htmlFor="ipk"
+                      className="block text-lg font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      IPK saat ini
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      id="ipk"
+                      name="ipk"
+                      value={formData.ipk}
+                      onChange={handleChange}
+                      className="mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+                {/* Tahun Akademik dan Semester */}
+                <div className="mb-6 flex space-x-4">
+                  <div className="w-1/2">
+                    <label
+                      htmlFor="tahunAkademik"
+                      className="block text-lg font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      Tahun Akademik
+                    </label>
+                    <input
+                      type="text"
+                      id="tahunAkademik"
+                      name="tahunAkademik"
+                      value={formData.tahunAkademik}
+                      onChange={handleChange}
+                      className="mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div className="w-1/2">
+                    <label
+                      htmlFor="semester"
+                      className="block text-lg font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      Semester
+                    </label>
+                    <select
+                      id="semester"
+                      name="semester"
+                      value={formData.semester}
+                      onChange={handleChange}
+                      className="mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="Ganjil">Ganjil</option>
+                      <option value="Genap">Genap</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
+            {session?.user?.role === "Dosen" && (
+              <div className="mb-6">
                 <label
-                  htmlFor="jumlahSKS"
+                  htmlFor="verificatorStatus"
                   className="block text-lg font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Jumlah SKS saat ini
-                </label>
-                <input
-                  type="number"
-                  id="jumlahSKS"
-                  name="jumlahSKS"
-                  value={formData.jumlahSKS}
-                  onChange={handleChange}
-                  className="mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-              <div className="w-1/2">
-                <label
-                  htmlFor="ipk"
-                  className="block text-lg font-medium text-gray-700 dark:text-gray-300"
-                >
-                  IPK saat ini
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  id="ipk"
-                  name="ipk"
-                  value={formData.ipk}
-                  onChange={handleChange}
-                  className="mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-            </div>
-            {/* Tahun Akademik dan Semester */}
-            <div className="mb-6 flex space-x-4">
-              <div className="w-1/2">
-                <label
-                  htmlFor="tahunAkademik"
-                  className="block text-lg font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Tahun Akademik
-                </label>
-                <input
-                  type="text"
-                  id="tahunAkademik"
-                  name="tahunAkademik"
-                  value={formData.tahunAkademik}
-                  onChange={handleChange}
-                  className="mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-              <div className="w-1/2">
-                <label
-                  htmlFor="semester"
-                  className="block text-lg font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Semester
+                  Ubah Status Pengajuan
                 </label>
                 <select
-                  id="semester"
-                  name="semester"
-                  value={formData.semester}
-                  onChange={handleChange}
-                  className="mt-2 w-full rounded-lg border border-gray-300 p-3 dark:bg-gray-700 dark:text-white"
+                  id="verificatorStatus"
+                  name="verificatorStatus"
+                  value={verificatorStatus}
+                  onChange={(e) => {
+                    setVerificatorStatus(e.target.value);
+                  }}
+                  className="mt-2 w-full rounded-lg border border-gray-300 bg-white p-3 dark:bg-gray-700 dark:text-white"
                 >
-                  <option value="Ganjil">Ganjil</option>
-                  <option value="Genap">Genap</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Disetujui</option>
+                  <option value="rejected">Ditolak</option>
                 </select>
               </div>
-            </div>
+            )}
             {/* Verificator Section */}
             <div className="mt-8">
               <h3 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-gray-100">
@@ -605,133 +675,163 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 {/* Pembimbing */}
-                <div>
-                  {pembimbingSlots.map((v, index) =>
-                    v ? (
-                      <div
-                        key={`pembimbing-${v.id}`}
-                        className="mb-4 rounded-lg bg-gray-100 p-4 dark:bg-gray-700"
-                      >
-                        <p>
-                          <strong>Role:</strong> {v.type}{" "}
-                          <span className="ml-2 inline-block rounded-full bg-blue-200 px-3 py-1 text-sm font-semibold text-blue-700">
-                            {v.status}
-                          </span>
-                        </p>
-                        <p>
-                          <strong>Nama:</strong> {v.lecturerName}
-                        </p>
-                        {session?.user?.role !== "Dosen" && (
-                          <div className="mt-2 flex space-x-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowEditVerificatorModal(true);
-                                setVerificator(v.id);
-                                setSelectedLecturer(v.lecturerId);
-                              }}
-                              className="rounded-lg bg-yellow-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-yellow-600"
+                {Type?.formats[0]?.requires_pembimbing && (
+                  <div>
+                    {pembimbingSlots.map((v, index) =>
+                      v ? (
+                        <div
+                          key={`pembimbing-${v.id}`}
+                          className="mb-4 rounded-lg bg-gray-100 p-4 dark:bg-gray-700"
+                        >
+                          <p>
+                            <strong>Role:</strong> {v.type}{" "}
+                            <span
+                              className={`ml-2 inline-block rounded-full px-3 py-1 text-sm font-semibold ${
+                                v.status === "pending"
+                                  ? "bg-yellow-200 text-yellow-700"
+                                  : v.status === "approved"
+                                    ? "bg-green-200 text-green-700"
+                                    : v.status === "rejected"
+                                      ? "bg-red-200 text-red-700"
+                                      : "bg-blue-200 text-blue-700"
+                              }`}
                             >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteVerificator(v.id)}
-                              className="rounded-lg bg-red-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-red-600"
-                            >
-                              Hapus
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div
-                        key={`pembimbing-new-${index}`}
-                        className="mb-4 rounded-lg bg-gray-100 p-4 dark:bg-gray-700"
-                      >
-                        <p>Belum ada pembimbing.</p>
-                        {session?.user?.role !== "Dosen" && (
-                          <div className="mt-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowAddVerificatorModal(true);
-                                setType("Pembimbing");
-                              }}
-                              className="rounded-lg bg-green-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-green-600"
-                            >
-                              Tambah Verifikator
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ),
-                  )}
-                </div>
+                              {v.status === "approved"
+                                ? "Disetujui"
+                                : v.status.charAt(0).toUpperCase() +
+                                  v.status.slice(1)}
+                            </span>
+                          </p>
+                          <p>
+                            <strong>Nama:</strong> {v.lecturerName}
+                          </p>
+                          {session?.user?.role !== "Dosen" && (
+                            <div className="mt-2 flex space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowEditVerificatorModal(true);
+                                  setVerificator(v.id);
+                                  setSelectedLecturer(v.lecturerId);
+                                }}
+                                className="rounded-lg bg-yellow-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-yellow-600"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteVerificator(v.id)}
+                                className="rounded-lg bg-red-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-red-600"
+                              >
+                                Hapus
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          key={`pembimbing-new-${index}`}
+                          className="mb-4 rounded-lg bg-gray-100 p-4 dark:bg-gray-700"
+                        >
+                          <p>Belum ada pembimbing.</p>
+                          {session?.user?.role !== "Dosen" && (
+                            <div className="mt-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowAddVerificatorModal(true);
+                                  setType("Pembimbing");
+                                }}
+                                className="rounded-lg bg-green-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-green-600"
+                              >
+                                Tambah Verifikator
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
                 {/* Penguji */}
-                <div>
-                  {pengujiSlots.map((v, index) =>
-                    v ? (
-                      <div
-                        key={`penguji-${v.id}`}
-                        className="mb-4 rounded-lg bg-gray-100 p-4 dark:bg-gray-700"
-                      >
-                        <p>
-                          <strong>Role:</strong> {v.type}{" "}
-                          <span className="ml-2 inline-block rounded-full bg-blue-200 px-3 py-1 text-sm font-semibold text-blue-700">
-                            {v.status}
-                          </span>
-                        </p>
-                        <p>
-                          <strong>Nama:</strong> {v.lecturerName}
-                        </p>
-                        {session?.user?.role !== "Dosen" && (
-                          <div className="mt-2 flex space-x-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowEditVerificatorModal(true);
-                                setVerificator(v.id);
-                                setSelectedLecturer(v.lecturerId);
-                              }}
-                              className="rounded-lg bg-yellow-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-yellow-600"
+                {Type?.formats[0]?.requires_penguji && (
+                  <div>
+                    {pengujiSlots.map((v, index) =>
+                      v ? (
+                        <div
+                          key={`penguji-${v.id}`}
+                          className="mb-4 rounded-lg bg-gray-100 p-4 dark:bg-gray-700"
+                        >
+                          <p>
+                            <strong>Role:</strong> {v.type}{" "}
+                            <span
+                              className={`ml-2 inline-block rounded-full px-3 py-1 text-sm font-semibold ${
+                                v.status === "pending"
+                                  ? "bg-yellow-200 text-yellow-700"
+                                  : v.status === "approved"
+                                    ? "bg-green-200 text-green-700"
+                                    : v.status === "rejected"
+                                      ? "bg-red-200 text-red-700"
+                                      : "bg-blue-200 text-blue-700"
+                              }`}
                             >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteVerificator(v.id)}
-                              className="rounded-lg bg-red-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-red-600"
-                            >
-                              Hapus
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div
-                        key={`penguji-new-${index}`}
-                        className="mb-4 rounded-lg bg-gray-100 p-4 dark:bg-gray-700"
-                      >
-                        <p>Belum ada penguji.</p>
-                        {session?.user?.role !== "Dosen" && (
-                          <div className="mt-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowAddVerificatorModal(true);
-                                setType("Penguji");
-                              }}
-                              className="rounded-lg bg-green-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-green-600"
-                            >
-                              Tambah Verifikator
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ),
-                  )}
-                </div>
+                              {v.status === "approved"
+                                ? "Disetujui"
+                                : v.status.charAt(0).toUpperCase() +
+                                  v.status.slice(1)}
+                            </span>
+                          </p>
+                          <p>
+                            <strong>Nama:</strong> {v.lecturerName}
+                          </p>
+                          {session?.user?.role !== "Dosen" && (
+                            <div className="mt-2 flex space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowEditVerificatorModal(true);
+                                  setVerificator(v.id);
+                                  setSelectedLecturer(v.lecturerId);
+                                }}
+                                className="rounded-lg bg-yellow-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-yellow-600"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteVerificator(v.id)}
+                                className="rounded-lg bg-red-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-red-600"
+                              >
+                                Hapus
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          key={`penguji-new-${index}`}
+                          className="mb-4 rounded-lg bg-gray-100 p-4 dark:bg-gray-700"
+                        >
+                          <p>Belum ada penguji.</p>
+                          {session?.user?.role !== "Dosen" && (
+                            <div className="mt-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowAddVerificatorModal(true);
+                                  setType("Penguji");
+                                }}
+                                className="rounded-lg bg-green-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-green-600"
+                              >
+                                Tambah Verifikator
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             {/* Submit Button */}

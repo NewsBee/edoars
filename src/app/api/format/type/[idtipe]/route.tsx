@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createHash } from "crypto";
+import { uploadFileToS3 } from "@/lib/s3Utils";
 
 export const GET = async (
   req: Request,
@@ -113,8 +114,7 @@ export const POST = async (req: Request) => {
     const is_primary = formData.get("is_primary") === "true";
     const is_schedule_required =
       formData.get("is_schedule_required") === "true";
-    const is_newtitle =
-      formData.get("is_newtitle") === "true";
+    const is_newtitle = formData.get("is_newtitle") === "true";
     const give_access_to_mahasiswa =
       formData.get("give_access_to_mahasiswa") === "true";
     const if_pass_then_give_access_type_id = formData
@@ -176,11 +176,12 @@ export const POST = async (req: Request) => {
     const ratingColumns = formData.getAll("requiredValues[]"); // Similarly for rating columns
     ratingColumns.forEach((column: any) => {
       const parsedColumn = JSON.parse(column); // Parse the JSON string into an object
-      const { name, key, note } = parsedColumn;
+      const { name, key, note, weight } = parsedColumn;
       requiredValues.push({
         name,
         key,
         note,
+        weight,
       });
     });
     console.log(ratingColumns);
@@ -241,12 +242,25 @@ export const POST = async (req: Request) => {
 
       // For each student, create an access entry in student_type_access_permissions
       for (let student of students) {
-        await prismadb.studentTypeAccessPermission.create({
-          data: {
+        await prismadb.studentTypeAccessPermission.upsert({
+          where: {
+            userId_typeId: {
+              userId: student.id,
+              typeId: BigInt(typeId.toString()),
+            },
+          },
+          update: {}, // Kosongkan jika tidak ingin mengubah apa pun
+          create: {
             userId: student.id,
-            typeId: BigInt(typeId.toString()), // This type corresponds to the format's type
+            typeId: BigInt(typeId.toString()),
           },
         });
+        // await prismadb.studentTypeAccessPermission.create({
+        //   data: {
+        //     userId: student.id,
+        //     typeId: BigInt(typeId.toString()), // This type corresponds to the format's type
+        //   },
+        // });
       }
     }
 
@@ -286,51 +300,6 @@ export const POST = async (req: Request) => {
       }
     }
 
-    const s3 = new S3Client({
-      region: process.env.S3_REGION,
-      endpoint: process.env.S3_ENDPOINT_URL,
-      credentials: {
-        accessKeyId: process.env.S3_ACCESS_KEY ?? "",
-        secretAccessKey: process.env.S3_SECRET_KEY ?? "",
-      },
-    });
-
-    // Function to upload files to S3 & return the URL
-    const uploadFileToS3 = async (
-      file: File,
-      formatId: bigint,
-    ): Promise<string> => {
-      const arrayBuffer = await file.arrayBuffer();
-      const fileBuffer = Buffer.from(arrayBuffer);
-      // Creating a timestamp for the file
-      const timestamp = new Date().toISOString().replace(/[-:T.]/g, ""); // Clean timestamp for filename
-
-      // Combine elements for hashing
-      const hashInput = `${formatId}_${timestamp}_${file.name}`;
-
-      const hash = createHash("sha256").update(hashInput).digest("hex");
-
-      // Create a more secure, hashed file name
-      const formattedFileName = `${formatId}_${timestamp}_${hash}`;
-
-      // Define the S3 key (file path) with the new formatted name
-      const key = `${formatId}/${formattedFileName}`;
-      // const key = `${formatId}/${file.name}`;
-
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: process.env.S3_BUCKET_NAME,
-          Key: key,
-          Body: fileBuffer,
-          ContentType: file.type,
-          ACL: "public-read",
-        }),
-      );
-
-      const fileUrl = `${process.env.S3_ENDPOINT_URL}/${process.env.S3_BUCKET_NAME}/${key}`;
-      return fileUrl;
-    };
-
     let documentFormat: string | null = null;
     const document_format = formData.get("document_format");
     console.log(document_format);
@@ -346,36 +315,53 @@ export const POST = async (req: Request) => {
       },
     });
 
-    // Create Required Files
-    const createdRequiredFiles = await Promise.all(
-      requiredFiles.map((file: any) =>
-        prismadb.requiredFile.create({
-          data: {
-            name: file.name,
-            key: file.key,
-            note: file.note,
-            formatId: newFormat.id,
-            // typeId: file.typeId,
-          },
-        }),
-      ),
-    );
-    console.log("createdRequiredFiles: " + createdRequiredFiles);
+    // Create Required Files if there are any
+    console.log(requiredFiles);
+    console.log(requiredValues);
 
-    // Create Required Values
-    const createdRequiredValues = await Promise.all(
-      requiredValues.map((value: any) =>
-        prismadb.requiredValue.create({
-          data: {
-            name: value.name,
-            key: value.key,
-            note: value.note,
-            formatId: newFormat.id,
-          },
-        }),
-      ),
+    // Filter out empty required files
+    const validRequiredFiles = requiredFiles.filter(
+      (file) => file.name && file.key,
     );
-    console.log("createdRequiredValues :" + createdRequiredValues);
+
+    if (validRequiredFiles.length > 0) {
+      let createdRequiredFiles = await Promise.all(
+        validRequiredFiles.map((file: any) =>
+          prismadb.requiredFile.create({
+            data: {
+              name: file.name,
+              key: file.key,
+              note: file.note,
+              formatId: newFormat.id,
+              // typeId: file.typeId,
+            },
+          }),
+        ),
+      );
+      console.log(createdRequiredFiles);
+    }
+
+    // Filter out empty required values
+    const validRequiredValues = requiredValues.filter(
+      (value) => value.name && value.key,
+    );
+
+    if (validRequiredValues.length > 0) {
+      let createdRequiredValues = await Promise.all(
+        validRequiredValues.map((value: any) =>
+          prismadb.requiredValue.create({
+            data: {
+              name: value.name,
+              key: value.key,
+              note: value.note,
+              bobot: value.weight,
+              formatId: newFormat.id,
+            },
+          }),
+        ),
+      );
+      console.log(createdRequiredValues);
+    }
 
     // Convert BigInt to string for the response
     const convertBigIntToString = (obj: unknown): unknown => {
@@ -400,13 +386,8 @@ export const POST = async (req: Request) => {
 
     // Final response to client
     const response = {
+      message: "Format created successfully",
       newFormat: convertBigIntToString(newFormat),
-      createdRequiredFiles: createdRequiredFiles.map((file) =>
-        convertBigIntToString(file),
-      ),
-      createdRequiredValues: createdRequiredValues.map((value: any) =>
-        convertBigIntToString(value),
-      ),
     };
 
     return NextResponse.json(response, { status: 201 });

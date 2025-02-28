@@ -20,6 +20,7 @@ const FileRequired: React.FC<{ idformat: string }> = ({ idformat }) => {
       .catch((err) => console.error("Error fetching required files:", err));
   }, [idformat]);
 
+  console.log(idformat)
   // Mengubah nilai kolom file
   const handleFileColumnChange = (
     e: ChangeEvent<HTMLInputElement>,

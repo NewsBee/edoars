@@ -3,6 +3,19 @@
 import { FaClock, FaChalkboardTeacher, FaClipboardList } from "react-icons/fa";
 import React from "react";
 
+const getStatusClass = (status: string) => {
+  switch (status) {
+    case "approved":
+      return "bg-green-100 text-green-800";
+    case "rejected":
+      return "bg-red-100 text-red-800";
+    case "pending":
+      return "bg-yellow-100 text-yellow-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
 const ProposalSubmissionPage = ({ submission }: { submission: any }) => {
   return (
     <div className="flex w-full justify-center px-4 mt-8">
@@ -23,7 +36,7 @@ const ProposalSubmissionPage = ({ submission }: { submission: any }) => {
                 Status Pengajuan
               </h3>
             </div>
-            <span className="rounded-md bg-yellow-100 px-4 py-1 text-sm font-medium text-yellow-600">
+            <span className={`rounded-md px-4 py-1 text-sm font-medium ${getStatusClass(submission.status)}`}>
               {submission.status.toUpperCase()}
             </span>
           </div>
@@ -73,8 +86,8 @@ const ProposalSubmissionPage = ({ submission }: { submission: any }) => {
                         {item.type} {i + 1}
                       </p>
                     </div>
-                    <span className="rounded-md bg-gray-200 px-4 py-1 text-sm font-medium text-gray-600">
-                      {item.status === "active" ? "Active" : "Inactive"}
+                    <span className={`rounded-md px-4 py-1 text-sm font-medium ${item.status === "approved" ? "bg-green-100 text-green-800" : item.status === "rejected" ? "bg-red-100 text-red-800" : "bg-gray-200 text-gray-600"}`}>
+                      {item.status === "approved" ? "Approved" : item.status === "rejected" ? "Rejected" : "Pending"}
                     </span>
                   </div>
                 ))
@@ -119,8 +132,8 @@ const ProposalSubmissionPage = ({ submission }: { submission: any }) => {
                         {item.type} {i + 1}
                       </p>
                     </div>
-                    <span className="rounded-md bg-gray-200 px-4 py-1 text-sm font-medium text-gray-600">
-                      {item.status === "active" ? "Active" : "Inactive"}
+                     <span className={`rounded-md px-4 py-1 text-sm font-medium ${item.status === "approved" ? "bg-green-100 text-green-800" : item.status === "rejected" ? "bg-red-100 text-red-800" : "bg-gray-200 text-gray-600"}`}>
+                      {item.status === "approved" ? "Approved" : item.status === "rejected" ? "Rejected" : "Pending"}
                     </span>
                   </div>
                 ))

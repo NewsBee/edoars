@@ -19,37 +19,27 @@ const RequiredValue: React.FC<{ idformat: string }> = ({ idformat }) => {
       })
       .catch((err) => console.error("Error fetching required values:", err));
   }, [idformat]);
+  console.log(ratingColumns)
 
-  // Mengubah nilai kolom rating
-//   const handleRatingColumnChange = (
-//     e: ChangeEvent<HTMLInputElement>,
-//     rowIndex: number,
-//     colIndex: number
-//   ) => {
-//     const updatedColumns = [...ratingColumns];
-//     updatedColumns[rowIndex][colIndex] = e.target.value;
-//     setRatingColumns(updatedColumns);
-//   };
-const handleRatingColumnChange = (e: ChangeEvent<HTMLInputElement>, rowIndex: number, colIndex: string | number) => {
+const handleRatingColumnChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, rowIndex: number, colIndex: string | number) => {
     const updatedColumns = [...ratingColumns];
   
     // Memastikan tipe data yang benar untuk setiap kolom
     if (colIndex === "key" || colIndex === "note" || colIndex === "name") {
       updatedColumns[rowIndex][colIndex] = e.target.value; // Untuk teks, simpan sebagai string
-    } else if (colIndex === "weight") {
-      updatedColumns[rowIndex][colIndex] = parseInt(e.target.value, 10); // Untuk bobot, parse menjadi number
+    } else if (colIndex === "bobot") {
+      updatedColumns[rowIndex][colIndex] = parseFloat(e.target.value); // Untuk bobot, parse menjadi number
     }
   
     setRatingColumns(updatedColumns);
   };
   
-
   // Menambah kolom baru
   const addRatingColumn = () => {
     const newColumn = {
       name: "",
       key: "",
-    //   weight: "", // Kolom bobot (0-100)
+      bobot: "", // Kolom bobot (0-100)
       note: "",
       id: null, // Kolom baru belum ada di database
     };
@@ -149,6 +139,7 @@ const handleRatingColumnChange = (e: ChangeEvent<HTMLInputElement>, rowIndex: nu
         .catch((err) => console.error("Error saving new rating column:", err));
     }
   };
+  console.log(ratingColumns)
 
   // Toggle edit mode
   const toggleEditMode = (rowIndex: number) => {
@@ -209,21 +200,21 @@ const handleRatingColumnChange = (e: ChangeEvent<HTMLInputElement>, rowIndex: nu
               <td className="border px-4 py-2">
                 <input
                   type="number"
-                  value={row.weight}
-                //   onChange={(e) => handleRatingColumnChange(e, rowIndex, "weight")}
+                  value={row.bobot}
+                  onChange={(e) => handleRatingColumnChange(e, rowIndex, "bobot")}
                   className="w-full rounded border border-gray-300 p-2"
-                  disabled
+                  disabled={row.id ? !editStatus[rowIndex] : false}
                 />
               </td>
-              <td className="border px-4 py-2">
-                <input
-                  type="text"
+                <td className="border px-4 py-2">
+                <textarea
                   value={row.note}
                   onChange={(e) => handleRatingColumnChange(e, rowIndex, "note")}
                   className="w-full rounded border border-gray-300 p-2"
                   disabled={row.id ? !editStatus[rowIndex] : false} // Disable input jika tidak dalam mode edit
+                  rows={3} // Menambahkan properti rows untuk membuat input lebih panjang
                 />
-              </td>
+                </td>
               <td className="border px-4 py-2">
                 {row.id ? (
                   <>

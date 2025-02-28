@@ -14,7 +14,7 @@ export const POST = async (req: Request) => {
     const body = await req.json();
     // { name, key, note, formatId }
 
-    const { name, key, note, formatId } = body;
+    const { name, key, note, formatId, bobot } = body;
     if (!name || !key) {
       return NextResponse.json(
         { message: "Missing required fields: name, key" },
@@ -26,6 +26,7 @@ export const POST = async (req: Request) => {
         data: {
           name,
           key,
+          bobot,
           note: note || "",
           formatId: BigInt(formatId.toString()),
           // typeId: typeId ? BigInt(typeId.toString()) : undefined,

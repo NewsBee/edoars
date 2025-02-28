@@ -6,17 +6,17 @@ import prismadb from "@/lib/prismadb";
 export const GET = async (req: NextRequest) => {
   try {
     // Mendapatkan sesi pengguna yang sedang login
-    //   const session = await getServerSession(authOptions);
+      const session = await getServerSession(authOptions);
 
-    //   if (!session?.user?.id) {
-    //     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    //   }
+      if (!session?.user?.id) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+      }
     console.log(11);
 
     // Ambil semua submission yang dimiliki oleh mahasiswa yang sedang login
     const submissions = await prismadb.submission.findMany({
         where: {
-          userId: 1, // Mengambil submission berdasarkan userId dari sesi
+          userId: Number(session.user.id) , // Mengambil submission berdasarkan userId dari sesi
         },
         include: {
           Verificator: {

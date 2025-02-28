@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { useSession } from "next-auth/react";
 
 interface DetailBerkasProps {
+  submissionData: any;
   requiredFiles: any[];
   openModal: (fileUrl: string) => void;
   closeModal: () => void;
@@ -15,6 +16,7 @@ interface DetailBerkasProps {
 
 const DetailBerkas: React.FC<DetailBerkasProps> = ({
   requiredFiles,
+  submissionData,
   openModal,
   closeModal,
   modalIsOpen,
@@ -30,6 +32,8 @@ const DetailBerkas: React.FC<DetailBerkasProps> = ({
   const [selectedFileId, setSelectedFileId] = useState<number | null>(null);
   const [newFile, setNewFile] = useState<File | null>(null);
   const { data: session } = useSession();
+  console.log(requiredFiles)
+  console.log(submissionData.requiredFilesFormatted)
 
   const handleApprove = async (fileId: number) => {
     try {

@@ -221,10 +221,17 @@ export const PUT = async (
         });
         // For each student, create an access entry in student_type_access_permissions
         for (let student of students) {
-          await prismadb.studentTypeAccessPermission.create({
-            data: {
+          await prismadb.studentTypeAccessPermission.upsert({
+            where: {
+              userId_typeId: {
+                userId: student.id,
+                typeId: BigInt(typeId.toString()),
+              },
+            },
+            update: {}, // Kosongkan jika tidak ingin mengubah apa pun
+            create: {
               userId: student.id,
-              typeId: BigInt(typeId.toString()), // This type corresponds to the format's type
+              typeId: BigInt(typeId.toString()),
             },
           });
         }

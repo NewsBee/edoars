@@ -1,41 +1,56 @@
 // src/middleware.ts
 
-import { getToken } from 'next-auth/jwt';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { getToken } from "next-auth/jwt";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     const url = req.nextUrl.clone();
     const requestedPage = url.pathname;
-    console.log("Token:", token);
+    // console.log("Token:", token);
     console.log("Requested Page:", requestedPage);
 
-
     // Bypass for static files and API routes
-    if (
-        requestedPage.startsWith('/api/') ||
-        /\.(.*)$/.test(requestedPage)
-    ) {
+    if (requestedPage.startsWith("/api/") || /\.(.*)$/.test(requestedPage)) {
         return NextResponse.next();
     }
 
-    // // Redirect to home if already authenticated and trying to access login page
-    // if (token && requestedPage === '/auth/login') { // Ensure this matches your actual login path
-    //     url.pathname = '/';
-    //     return NextResponse.redirect(url);
-    // }
+    // Redirect authenticated users away from the login page
+    if (token && requestedPage === "/auth/login") {
+        return NextResponse.redirect(new URL(`/${token.role.toLowerCase()}/dashboard`, req.url));
+    }
 
-    // // Redirect to login if not authenticated and trying to access protected pages
-    // const protectedPages = ['/dashboard', '/pengajuan', '/penawaran', '/pengumuman',];
-    // if (!token && protectedPages.some(page => requestedPage.startsWith(page))) {
-    //     url.pathname = '/auth/login';
-    //     return NextResponse.redirect(url);
-    // }
+    // Allow access to the login page if the user is not authenticated
+    if (!token && requestedPage === "/auth/login") {
+        return NextResponse.next();
+    }
+
+    if (!token) {
+        return NextResponse.redirect(new URL("/auth/login", req.url));
+    }
+
+    const { role } = token;
+    console.log("Role:", role);
+    if (url.pathname.startsWith('/admin') && role !== 'Admin') {
+        return NextResponse.redirect(new URL('/unauthorized', req.url));
+    }
+
+    if (url.pathname.startsWith('/mahasiswa') && role !== 'Mahasiswa') {
+        return NextResponse.redirect(new URL('/unauthorized', req.url));
+    }
+
+    if (url.pathname.startsWith('/dosen') && role !== 'Dosen') {
+        return NextResponse.redirect(new URL('/unauthorized', req.url));
+    }
+
+    if (url.pathname.startsWith('/kaprodi') && role !== 'Kaprodi') {
+        return NextResponse.redirect(new URL('/unauthorized', req.url));
+    }
 
     return NextResponse.next();
 }
 
 export const config = {
-    matcher: ['/((?!_next|static|favicon.ico).*)'], // Matches all paths except for those in the exclusion list
+    matcher: ['/((?!_next|static|favicon.ico).*)','/admin/:path*', '/mahasiswa/:path*', '/dosen/:path*', '/kaprodi/:path*'],
 };
