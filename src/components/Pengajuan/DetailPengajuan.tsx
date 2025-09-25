@@ -23,6 +23,7 @@ import InputBerkas from "./InputBerkas";
 import DetailPenilaian from "./DetailPenilaian";
 import DisplayPenilaian from "./DisplayPenilaian";
 import MemutuskanHasil from "./MemutuskanHasil";
+import HasilKeputusanTitle from "./DetailHasilKeputusanTitle";
 
 const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
   const [submissionData, setSubmissionData] = useState<any>(null);
@@ -34,26 +35,26 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
 
   console.log(selectedFileUrl);
 
-  useEffect(() => {
-    const fetchSubmissionData = async () => {
-      try {
-        const response = await fetch(`/api/submission/${submissionId}`);
-        const data = await response.json();
-        if (response.ok) {
-          setSubmissionData(data.formattedSubmission);
-        } else {
-          console.error("Failed to fetch submission data:", data.message);
-        }
-      } catch (error) {
-        console.error("Error fetching submission data:", error);
+  const fetchSubmissionData = async () => {
+    try {
+      const response = await fetch(`/api/submission/${submissionId}`);
+      const data = await response.json();
+      if (response.ok) {
+        setSubmissionData(data.formattedSubmission);
+      } else {
+        console.error("Failed to fetch submission data:", data.message);
       }
-    };
-
+    } catch (error) {
+      console.error("Error fetching submission data:", error);
+    }
+  };
+  useEffect(() => {
     fetchSubmissionData();
   }, [submissionId]);
   console.log(submissionData);
 
   console.log(session?.user.role);
+  console.log(session);
 
   const isAdmin =
     session?.user.role !== "Mahasiswa" && session?.user.role !== "Dosen";
@@ -62,6 +63,35 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="loader h-32 w-32 rounded-full border-8 border-t-8 border-gray-200 ease-linear"></div>
+      </div>
+    );
+  }
+
+  if (
+    submissionData &&
+    session?.user.role === "Mahasiswa" &&
+    Number(submissionData.userId) !== Number(session?.user?.id)
+  ) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-red-100 via-white to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="w-full max-w-md rounded-xl bg-white/90 p-10 text-center shadow-2xl ring-1 ring-red-200 dark:bg-gray-800/90 dark:ring-gray-700">
+          <div className="mb-4 flex justify-center">
+            <FaGavel className="text-5xl text-red-500 drop-shadow-lg" />
+          </div>
+          <h2 className="mb-2 text-3xl font-extrabold tracking-tight text-red-600 dark:text-red-400">
+            Akses Ditolak
+          </h2>
+          <p className="mb-6 text-base text-gray-700 dark:text-gray-200">
+            Anda tidak memiliki akses ke pengajuan ini atau halaman yang Anda
+            cari tidak ditemukan.
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="inline-block rounded-lg bg-red-500 px-6 py-2 font-semibold text-white shadow transition-colors duration-200 hover:bg-red-600"
+          >
+            Kembali
+          </button>
+        </div>
       </div>
     );
   }
@@ -125,7 +155,8 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
     (value: any) => value.verificatorId === verificatorId,
   );
   // console.log(submissionData.SubmissionRequiredValue);
-  // console.log(hasUserSubmittedPenilaian);
+  console.log(hasUserSubmittedPenilaian);
+  console.log(Type?.formats[0]?.is_newtitle_submission);
 
   return (
     <div className="container mx-auto p-8">
@@ -200,18 +231,18 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 {User.nim}
               </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                <strong>Jumlah SKS:</strong> 
-                <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                <strong>Jumlah SKS:</strong>
+                <span className="rounded bg-green-100 px-2 py-1 text-green-800">
                   {submissionData.amountOfSks}
                 </span>
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                <strong>IPK:</strong> 
-                <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                <strong>IPK:</strong>
+                <span className="rounded bg-green-100 px-2 py-1 text-green-800">
                   {submissionData.ipkNow}
                 </span>
-                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -220,6 +251,13 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
         <div className="mb-8">
           <div className="flex space-x-6">
             {tabs.map((tab, index) => {
+              const allVerificatorsApproved =
+                submissionData.Verificator &&
+                submissionData.Verificator.length > 0 &&
+                submissionData.Verificator.every(
+                  (v: any) => v.status === "approved",
+                );
+
               const isDisabled =
                 (session?.user.role === "Mahasiswa" &&
                   ((tab.label === "Hasil Keputusan" && status !== "approved") ||
@@ -229,7 +267,15 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
                 (tab.label === "Berkas" &&
                   (!submissionData.RequiredFiles ||
                     submissionData.RequiredFiles.length === 0) &&
-                  session?.user.role !== "Mahasiswa");
+                  session?.user.role !== "Mahasiswa") ||
+                (session?.user.role === "Dosen" &&
+                  !hasUserSubmittedPenilaian &&
+                  (tab.label === "Memutuskan Hasil" ||
+                    tab.label === "Hasil Keputusan" ||
+                    tab.label === "Revisi")) ||
+                (session?.user.role === "Dosen" &&
+                  tab.label === "Penilaian" &&
+                  !allVerificatorsApproved);
               return (
                 <div
                   key={index}
@@ -296,12 +342,27 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
 
         {/* Hasil Keputusan Section */}
         {activeTab ===
-          tabs.findIndex((tab) => tab.label === "Hasil Keputusan") && (
-          <DetailHasilKeputusan
-            requiredFiles={submissionData}
-            verificatorAverages={submissionData.verificatorAverages}
-          />
-        )}
+          tabs.findIndex((tab) => tab.label === "Hasil Keputusan") &&
+          (Type?.formats[0]?.is_newtitle_submission ? (
+            <HasilKeputusanTitle
+              status={submissionData.status}
+              title={submissionData.title}
+              approvedDate={new Date(
+                submissionData.updatedAt,
+              ).toLocaleDateString("id-ID", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            />
+          ) : (
+            <DetailHasilKeputusan
+              requiredFiles={submissionData.RequiredFiles}
+              verificatorAverages={submissionData.verificatorAverages}
+              submission={submissionData}
+            />
+          ))}
 
         {/* Revisi Section */}
         {activeTab === tabs.findIndex((tab) => tab.label === "Revisi") && (
@@ -329,7 +390,10 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
 
         {/* Detail Section */}
         {activeTab === tabs.findIndex((tab) => tab.label === "Detail") && (
-          <DetailSubmission submissionData={submissionData} />
+          <DetailSubmission
+            submissionData={submissionData}
+            onReload={fetchSubmissionData}
+          />
         )}
 
         {/* Back Button */}

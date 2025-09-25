@@ -129,7 +129,9 @@ const DetailBerkas: React.FC<DetailBerkasProps> = ({
           file.id === fileId ? { ...file, status: "pending" } : file,
         );
         setFiles(updatedFiles);
+        window.location.reload();
         closeUploadModal();
+
       } else {
         toast.error("Failed to upload file");
       }

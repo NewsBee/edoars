@@ -17,8 +17,9 @@ const getStatusClass = (status: string) => {
 };
 
 const ProposalSubmissionPage = ({ submission }: { submission: any }) => {
+  console.log(submission);
   return (
-    <div className="flex w-full justify-center px-4 mt-8">
+    <div className="mt-8 flex w-full justify-center px-4">
       <div className="w-full rounded-lg bg-white p-6 shadow-lg">
         <h1 className="mb-2 text-center text-2xl font-bold text-gray-800">
           {submission.title}
@@ -36,7 +37,9 @@ const ProposalSubmissionPage = ({ submission }: { submission: any }) => {
                 Status Pengajuan
               </h3>
             </div>
-            <span className={`rounded-md px-4 py-1 text-sm font-medium ${getStatusClass(submission.status)}`}>
+            <span
+              className={`rounded-md px-4 py-1 text-sm font-medium ${getStatusClass(submission.status)}`}
+            >
               {submission.status.toUpperCase()}
             </span>
           </div>
@@ -86,9 +89,23 @@ const ProposalSubmissionPage = ({ submission }: { submission: any }) => {
                         {item.type} {i + 1}
                       </p>
                     </div>
-                    <span className={`rounded-md px-4 py-1 text-sm font-medium ${item.status === "approved" ? "bg-green-100 text-green-800" : item.status === "rejected" ? "bg-red-100 text-red-800" : "bg-gray-200 text-gray-600"}`}>
-                      {item.status === "approved" ? "Approved" : item.status === "rejected" ? "Rejected" : "Pending"}
-                    </span>
+                    {!submission.Type?.formats[0]?.is_newtitle_submission && (
+                      <span
+                        className={`rounded-md px-4 py-1 text-sm font-medium ${
+                          item.status === "approved"
+                            ? "bg-green-100 text-green-800"
+                            : item.status === "rejected"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {item.status === "approved"
+                          ? "Approved"
+                          : item.status === "rejected"
+                            ? "Rejected"
+                            : "Pending"}
+                      </span>
+                    )}
                   </div>
                 ))
               ) : (
@@ -132,9 +149,17 @@ const ProposalSubmissionPage = ({ submission }: { submission: any }) => {
                         {item.type} {i + 1}
                       </p>
                     </div>
-                     <span className={`rounded-md px-4 py-1 text-sm font-medium ${item.status === "approved" ? "bg-green-100 text-green-800" : item.status === "rejected" ? "bg-red-100 text-red-800" : "bg-gray-200 text-gray-600"}`}>
-                      {item.status === "approved" ? "Approved" : item.status === "rejected" ? "Rejected" : "Pending"}
-                    </span>
+                    {!submission.Type?.formats[0]?.is_newtitle_submission && (
+                      <span
+                        className={`rounded-md px-4 py-1 text-sm font-medium ${item.status === "approved" ? "bg-green-100 text-green-800" : item.status === "rejected" ? "bg-red-100 text-red-800" : "bg-gray-200 text-gray-600"}`}
+                      >
+                        {item.status === "approved"
+                          ? "Approved"
+                          : item.status === "rejected"
+                            ? "Rejected"
+                            : "Pending"}
+                      </span>
+                    )}
                   </div>
                 ))
               ) : (
@@ -145,9 +170,11 @@ const ProposalSubmissionPage = ({ submission }: { submission: any }) => {
                     </p>
                     <p className="text-xs text-gray-500">Penguji</p>
                   </div>
-                  <span className="rounded-md bg-gray-200 px-4 py-1 text-sm font-medium text-gray-600">
-                    Pending
-                  </span>
+                  {!submission.Type?.formats[0]?.is_newtitle_submission && (
+                    <span className="rounded-md bg-gray-200 px-4 py-1 text-sm font-medium text-gray-600">
+                      Pending
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -156,12 +183,14 @@ const ProposalSubmissionPage = ({ submission }: { submission: any }) => {
 
         {/* Button Detail */}
         <div className="mt-6 flex justify-end">
-            <button
-            onClick={() => window.location.href = `${window.location.pathname}/${submission.id}/detail`}
+          <button
+            onClick={() =>
+              (window.location.href = `${window.location.pathname}/${submission.id}/detail`)
+            }
             className="rounded-lg bg-blue-500 px-6 py-2 text-sm text-white shadow hover:bg-blue-600"
-            >
+          >
             Detail
-            </button>
+          </button>
         </div>
       </div>
     </div>

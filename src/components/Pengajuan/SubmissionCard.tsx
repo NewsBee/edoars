@@ -34,6 +34,10 @@ export interface SubmissionType {
   description: string;
   createdAt: string;
   updatedAt: string;
+  formats?: {
+    is_newtitle_submission?: boolean;
+    [key: string]: any;
+  }[];
 }
 
 export interface Submission {
@@ -154,17 +158,25 @@ export const ProposalSubmissionCard = ({
                           className="mb-2 rounded border border-gray-300 p-2"
                         >
                           <p className="text-sm font-semibold text-gray-700">
-                            Pembimbing {index + 1}: {verificator.lecturerName}
+                            {verificator.lecturerName}
                           </p>
                           <p className="text-sm text-gray-700">
-                            Seminar/Sidang{""}
+                            Seminar/Sidang{" "}
                             <span
-                              className={`rounded-full px-2 py-1 ${getStatusClass(verificator.status)}`}
+                              className={`rounded-full px-2 py-1 ${getStatusClass(
+                                submission.Type?.formats?.[0]
+                                  ?.is_newtitle_submission
+                                  ? "approved"
+                                  : verificator.status,
+                              )}`}
                             >
-                              {verificator.status === "approved"
+                              {submission.Type?.formats?.[0]
+                                ?.is_newtitle_submission
                                 ? "Disetujui"
-                                : verificator.status.charAt(0).toUpperCase() +
-                                  verificator.status.slice(1)}
+                                : verificator.status === "approved"
+                                  ? "Disetujui"
+                                  : verificator.status.charAt(0).toUpperCase() +
+                                    verificator.status.slice(1)}
                             </span>
                           </p>
                         </div>
@@ -190,14 +202,22 @@ export const ProposalSubmissionCard = ({
                             Penguji {index + 1}: {verificator.lecturerName}
                           </p>
                           <p className="text-sm text-gray-700">
-                            Seminar/Sidang{""}
+                            Seminar/Sidang{" "}
                             <span
-                              className={`rounded-full px-2 py-1 ${getStatusClass(verificator.status)}`}
+                              className={`rounded-full px-2 py-1 ${getStatusClass(
+                                submission.Type?.formats?.[0]
+                                  ?.is_newtitle_submission
+                                  ? "approved"
+                                  : verificator.status,
+                              )}`}
                             >
-                              {verificator.status === "approved"
+                              {submission.Type?.formats?.[0]
+                                ?.is_newtitle_submission
                                 ? "Disetujui"
-                                : verificator.status.charAt(0).toUpperCase() +
-                                  verificator.status.slice(1)}
+                                : verificator.status === "approved"
+                                  ? "Disetujui"
+                                  : verificator.status.charAt(0).toUpperCase() +
+                                    verificator.status.slice(1)}
                             </span>
                           </p>
                         </div>

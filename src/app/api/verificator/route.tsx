@@ -59,7 +59,7 @@ export const POST = async (req: NextRequest) => {
         // }
 
         return NextResponse.json(
-            { message: "Verificator created successfully" },
+            { message: "Verificator created successfully", lecturer, type: newVerificator.type },
             { status: 201 },
         );
     } catch (error) {

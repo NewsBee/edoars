@@ -13,6 +13,7 @@ const DetailPenilaian: React.FC<DetailPenilaianProps> = ({
   requiredValues,
   Verificator,
 }) => {
+  console.log(requiredValues)
   const { data: session } = useSession();
   const [formData, setFormData] = useState<{ [key: string]: string }>({});
   const [isModalOpen, setIsModalOpen] = useState(false);

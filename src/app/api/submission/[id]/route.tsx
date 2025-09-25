@@ -31,7 +31,11 @@ export const GET = async (
         User: true,
         Type: {
           include: {
-            formats: true,
+            formats: {
+              where: {
+                is_primary: true,
+              },
+            },
           },
         },
         RequiredFiles: {
@@ -332,23 +336,22 @@ export const PUT = async (
 
     const { verificatorId, verificatorStatus } = body;
 
-    if (!verificatorId || !verificatorStatus) {
-      return NextResponse.json(
-        { message: "Verificator ID and status are required" },
-        { status: 400 },
-      );
+    if (verificatorId && verificatorStatus) {
+      if (session.user.role !== "Dosen") {
+        return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+      }
+
+      const updatedVerificator = await prismadb.verificator.update({
+        where: {
+          id: BigInt(verificatorId),
+        },
+        data: {
+          status: verificatorStatus,
+        },
+      });
+
+      console.log(updatedVerificator);
     }
-
-    const updatedVerificator = await prismadb.verificator.update({
-      where: {
-        id: BigInt(verificatorId),
-      },
-      data: {
-        status: verificatorStatus,
-      },
-    });
-
-    console.log(updatedVerificator);
 
     if (body.status === "approved") {
       const submission = await prismadb.submission.findUnique({
@@ -364,7 +367,11 @@ export const PUT = async (
           },
           Type: {
             include: {
-              formats: true,
+              formats: {
+                where: {
+                  is_primary: true,
+                },
+              },
             },
           },
         },
@@ -487,6 +494,58 @@ export const PUT = async (
     return NextResponse.json({ serializedSubmission }, { status: 200 });
   } catch (error) {
     console.error("Error updating submission:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 },
+    );
+  }
+};
+
+export const DELETE = async (
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) => {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { id } = params;
+
+    if (!id) {
+      return NextResponse.json(
+        { message: "ID parameter is required" },
+        { status: 400 },
+      );
+    }
+
+    const submission = await prismadb.submission.findUnique({
+      where: {
+        id: Number(id),
+      },
+    });
+
+    if (!submission) {
+      return NextResponse.json(
+        { message: "Submission not found" },
+        { status: 404 },
+      );
+    }
+
+    await prismadb.submission.delete({
+      where: {
+        id: Number(id),
+      },
+    });
+
+    return NextResponse.json(
+      { message: "Submission deleted successfully" },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("Error deleting submission:", error);
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 },

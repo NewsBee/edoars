@@ -42,6 +42,7 @@ const FormLogin = () => {
       // Fetch the session to get user details
       const session = await fetch("/api/auth/session").then((res) => res.json());
       const role = session?.user?.role;
+      console.log(role)
       if (role) {
         window.location.href = `/${role.toLowerCase()}/dashboard`;
       } else {

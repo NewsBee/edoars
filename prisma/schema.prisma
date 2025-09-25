@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -119,7 +119,7 @@ model Submission {
   userId               Int
   title                String
   description          String?          @db.Text
-  status               SubmissionStatus @default(pending)
+  status               SubmissionStatus? @default(pending)
   jadwal               DateTime? // Jadwal seminar
   requestJadwal        DateTime? // Jadwal seminar
   room                 String? // Ruang seminar
@@ -358,7 +358,7 @@ model Format {
   requiredFiles  RequiredFile[]
   requiredValues RequiredValue[]
   getTypeAcces   GetTypeAccessPermission[]
-  Type           Type                      @relation(fields: [typeId], references: [id])
+  Type           Type                      @relation(fields: [typeId], references: [id], onDelete: Cascade)
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

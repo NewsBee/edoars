@@ -6,15 +6,13 @@ import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createHash } from "crypto";
 import { authOptions } from "../../auth/[...nextauth]/route";
 
-
 // API untuk mengambil data pengajuan (submissions) berdasarkan tipe pengajuan
 export const GET = async (req: NextRequest) => {
   const session = await getServerSession(authOptions);
 
-
-//   if (!session || session.user.role !== "Admin") {
-//     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-//   }
+  //   if (!session || session.user.role !== "Admin") {
+  //     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  //   }
 
   try {
     // Mendapatkan query parameter untuk tipe pengajuan
@@ -34,14 +32,22 @@ export const GET = async (req: NextRequest) => {
         Type: {
           slug: type, // Filter berdasarkan 'slug' dari tabel 'type'
         },
-        userId: Number(session?.user.id) 
+        userId: Number(session?.user.id),
       },
       orderBy: {
         createdAt: "desc",
       },
       include: {
         User: true, // Menyertakan informasi mahasiswa
-        Type: true, // Menyertakan tipe pengajuan
+        Type: {
+          include: {
+            formats: {
+              where: {
+                is_primary: true,
+              },
+            },
+          },
+        },
         RequiredFiles: {
           include: {
             RequiredFile: true, // Menyertakan file yang dibutuhkan untuk pengajuan
@@ -58,11 +64,14 @@ export const GET = async (req: NextRequest) => {
     });
     console.log(submissions);
 
-    if(!submissions){
-        return NextResponse.json({ message: "Data tidak ditemukan" }, { status: 404 });
+    if (!submissions) {
+      return NextResponse.json(
+        { message: "Data tidak ditemukan" },
+        { status: 404 },
+      );
     }
 
-    const formattedSubmissions = submissions.map((submission:any) => ({
+    const formattedSubmissions = submissions.map((submission: any) => ({
       id: String(submission.id),
       typeId: String(submission.typeId),
       userId: submission.userId,
@@ -118,10 +127,33 @@ export const GET = async (req: NextRequest) => {
         status: submission.Type.status,
         createdAt: submission.Type.createdAt,
         updatedAt: submission.Type.updatedAt,
+        formats: submission.Type.formats.map((format: any) => ({
+          id: String(format.id),
+          typeId: String(format.typeId),
+          name: format.name,
+          document_format: format.document_format,
+          document_format_name: format.document_format_name,
+          document_format_size: format.document_format_size,
+          is_primary: format.is_primary,
+          is_schedule_required: format.is_schedule_required,
+          is_newtitle_submission: format.is_newtitle_submission,
+          give_access_to_mahasiswa: format.give_access_to_mahasiswa,
+          if_pass_then_give_access_type_id:
+            format.if_pass_then_give_access_type_id,
+          requires_pembimbing: format.requires_pembimbing,
+          requires_penguji: format.requires_penguji,
+          requires_skill_group: format.requires_skill_group,
+          requires_academic_advisor: format.requires_academic_advisor,
+          next_submission_uses_current_verif:
+            format.next_submission_uses_current_verif,
+          createdAt: format.createdAt,
+          updatedAt: format.updatedAt,
+          status: format.status,
+        })),
       },
-   
+
       SubmissionRequiredValue: submission.SubmissionRequiredValue.map(
-        (value:any) => ({
+        (value: any) => ({
           id: value.id.toString(), // Mengonversi BigInt menjadi string
           value: value.value,
           requiredValueId: value.requiredValueId.toString(), // Mengonversi BigInt menjadi string
@@ -130,7 +162,7 @@ export const GET = async (req: NextRequest) => {
         }),
       ),
       // Menangani SkillGroup yang berisi BigInt
-      Verificator: submission.Verificator.map((verifier:any) => ({
+      Verificator: submission.Verificator.map((verifier: any) => ({
         id: verifier.id.toString(), // Mengonversi BigInt menjadi string
         type: verifier.type,
         status: verifier.status,

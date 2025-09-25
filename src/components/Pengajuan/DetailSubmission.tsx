@@ -8,10 +8,12 @@ import { toast } from "react-toastify";
 
 interface DetailSubmissionProps {
   submissionData: any;
+  onReload?: () => void;
 }
 
 const DetailSubmission: React.FC<DetailSubmissionProps> = ({
   submissionData,
+  onReload,
 }) => {
   const {
     id,
@@ -118,9 +120,14 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
       }
 
       const result = await response.json();
+      console.log(result);
+      setTimeout(() => {
+        onReload?.();
+      }, 500);
+      // setVerificator(prev => [...prev, result]);
       toast.success("Verificator added successfully");
       // Refresh the page or update the state
-      window.location.reload();
+      // window.location.reload();
     } catch (error) {
       console.error("Error adding verificator:", error);
       toast.error("Error adding verificator");
@@ -148,8 +155,10 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
       }
 
       const result = await response.json();
+      setTimeout(() => {
+        onReload?.();
+      }, 500);
       toast.success("Verificator updated successfully");
-      window.location.reload();
     } catch (error) {
       console.error("Error updating verificator:", error);
       toast.error("Error updating verificator");
@@ -168,8 +177,10 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
         throw new Error("Failed to delete verificator");
       }
 
+      setTimeout(() => {
+        onReload?.();
+      }, 500);
       toast.success("Verificator deleted successfully");
-      window.location.reload();
     } catch (error) {
       console.error("Error deleting verificator:", error);
       toast.error("Error deleting verificator");
@@ -270,6 +281,7 @@ const DetailSubmission: React.FC<DetailSubmissionProps> = ({
       const result = await response.json();
       console.log("Submission updated successfully:", result);
       toast.success("Submission updated successfully");
+      window.location.reload();
     } catch (error) {
       console.error("Error updating submission:", error);
       toast.error("Error updating submission");

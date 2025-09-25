@@ -17,6 +17,7 @@ const DetailProses: React.FC<DetailProsesProps> = ({ submissionData }) => {
   };
 
   console.log(submissionData.id);
+  console.log(submissionData);
   const handleSubmit = async () => {
     try {
       const response = await fetch(
@@ -106,7 +107,13 @@ const DetailProses: React.FC<DetailProsesProps> = ({ submissionData }) => {
           </label>
           <input
             type="datetime-local"
-            value={seminarDate}
+            value={
+              submissionData.requestJadwal
+                ? new Date(submissionData.requestJadwal)
+                    .toISOString()
+                    .slice(0, 16) // Format sesuai datetime-local
+                : seminarDate
+            }
             onChange={(e) => setSeminarDate(e.target.value)}
             className="w-full border border-gray-300 p-2 dark:bg-gray-700 dark:text-white"
             disabled={submissionData.isReadyToBeProcessed}

@@ -60,11 +60,8 @@ export interface SubmissionData {
 
 export default function SubmissionList({ slug }: { slug: string }) {
   // State untuk menampung data
-  //   console.log(slug)
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [filteredSubmissions, setFilteredSubmissions] = useState<Submission[]>(
-    [],
-  );
+  const [filteredSubmissions, setFilteredSubmissions] = useState<Submission[]>([]);
 
   // State filter / pencarian
   const [searchText, setSearchText] = useState("");
@@ -89,7 +86,6 @@ export default function SubmissionList({ slug }: { slug: string }) {
     }
     fetchData();
   }, [slug]);
-  console.log(submissions);
 
   // 2. Filter & sort setiap ada perubahan di state filter
   useEffect(() => {
@@ -100,9 +96,7 @@ export default function SubmissionList({ slug }: { slug: string }) {
       const lowerSearch = searchText.toLowerCase();
       temp = temp.filter((item) => {
         const titleMatches = item.title?.toLowerCase().includes(lowerSearch);
-        const userMatches = item.User?.name
-          ?.toLowerCase()
-          .includes(lowerSearch);
+        const userMatches = item.User?.name?.toLowerCase().includes(lowerSearch);
         return titleMatches || userMatches;
       });
     }
@@ -123,27 +117,40 @@ export default function SubmissionList({ slug }: { slug: string }) {
     temp.sort((a, b) => {
       switch (orderBy) {
         case "tanggalAsc":
-          return (
-            new Date(a.createdAt).valueOf() - new Date(b.createdAt).valueOf()
-          );
+          return new Date(a.createdAt).valueOf() - new Date(b.createdAt).valueOf();
         case "tanggalDesc":
-          return (
-            new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf()
-          );
+          return new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf();
         case "namaAsc":
           return a.User?.name.localeCompare(b.User?.name || "") || 0;
         case "namaDesc":
           return b.User?.name.localeCompare(a.User?.name || "") || 0;
         default:
           // Default: terbaru
-          return (
-            new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf()
-          );
+          return new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf();
       }
     });
 
     setFilteredSubmissions(temp);
   }, [submissions, searchText, statusFilter, angkatanFilter, orderBy]);
+
+  // Fungsi untuk menghapus submission
+  const handleDelete = async (id: string) => {
+    if (confirm("Apakah Anda yakin ingin menghapus pengajuan ini?")) {
+      try {
+        const res = await fetch(`/api/submission/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          setSubmissions(submissions.filter((submission) => submission.id !== id));
+          setFilteredSubmissions(filteredSubmissions.filter((submission) => submission.id !== id));
+        } else {
+          console.error("Gagal menghapus data:", res.statusText);
+        }
+      } catch (error) {
+        console.error("Gagal menghapus data:", error);
+      }
+    }
+  };
 
   // 3. Render
   return (
@@ -213,9 +220,7 @@ export default function SubmissionList({ slug }: { slug: string }) {
           </thead>
           <tbody>
             {filteredSubmissions.map((item, index) => {
-              const formattedDate = new Date(item.createdAt).toLocaleString(
-                "id-ID",
-              );
+              const formattedDate = new Date(item.createdAt).toLocaleString("id-ID");
 
               return (
                 <tr key={item.id} className="border-b hover:bg-gray-50">
@@ -232,18 +237,14 @@ export default function SubmissionList({ slug }: { slug: string }) {
                           >
                             <strong>{verifier.lecturerName}</strong>
                             <br />
-                            {verifier.status === "active"
-                              ? "Disetujui"
-                              : "Pending"}
+                            {verifier.status === "active" ? "Disetujui" : "Pending"}
                             <br />
                             {`${verifier.type}` || "Tidak ada nama"}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <span className="text-gray-400">
-                        Belum Ada Verifikator
-                      </span>
+                      <span className="text-gray-400">Belum Ada Verifikator</span>
                     )}
                   </td>
                   <td className="p-3">
@@ -252,10 +253,10 @@ export default function SubmissionList({ slug }: { slug: string }) {
                         item.status === "approved"
                           ? "bg-green-100 text-green-800"
                           : item.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : item.status === "on process"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-red-100 text-red-800"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : item.status === "on process"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-red-100 text-red-800"
                       }`}
                     >
                       {item.status}
@@ -273,15 +274,18 @@ export default function SubmissionList({ slug }: { slug: string }) {
                   </td>
                   <td className="p-3">
                     <div className="flex gap-2">
-                        <button
+                      <button
                         className="rounded bg-blue-500 px-2 py-1 text-white shadow-md transition duration-300 ease-in-out hover:bg-blue-600 hover:shadow-lg"
                         onClick={() =>
-                           (window.location.href = `${window.location.origin}${window.location.pathname}/${item.id}`)
+                          (window.location.href = `${window.location.origin}${window.location.pathname}/${item.id}`)
                         }
-                        >
+                      >
                         Ubah
-                        </button>
-                      <button className="rounded bg-red-500 px-2 py-1 text-white shadow-md transition duration-300 ease-in-out hover:bg-red-600 hover:shadow-lg">
+                      </button>
+                      <button
+                        className="rounded bg-red-500 px-2 py-1 text-white shadow-md transition duration-300 ease-in-out hover:bg-red-600 hover:shadow-lg"
+                        onClick={() => handleDelete(item.id)}
+                      >
                         Hapus
                       </button>
                       {/* <button className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded shadow-md transition duration-300 ease-in-out">

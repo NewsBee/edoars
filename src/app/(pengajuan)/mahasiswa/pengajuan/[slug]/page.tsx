@@ -11,42 +11,70 @@ import ProposalSubmission from "@/components/Pengajuan/PengajuanJudul";
 import InputSubmission from "@/components/Pengajuan/InputSubmission";
 import ProposalSubmissionPage from "@/components/Pengajuan/ProposalSubmissionPage";
 import { useSession } from "next-auth/react";
+import { checkAccess } from "@/lib/checkAccess";
+import AccessDeniedToast from "@/components/Modals/AccessDenied";
 
 export default function HalamanListPengajuan({
   params,
 }: {
   params: { slug: string };
 }) {
+  console.log("tes");
+
   const [loading, setLoading] = useState(true);
-  const [existingSubmission, setExistingSubmission] = useState(null);
+  type Submission = {
+    userId: string;
+    // tambahkan properti lain sesuai struktur data pengajuan Anda
+    [key: string]: any;
+  };
+  const [existingSubmission, setExistingSubmission] = useState<Submission | null>(null);
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const { data: session, status } = useSession()
 
-  useEffect(() => {
-    const fetchSubmission = async () => {
+   useEffect(() => {
+    async function init() {
+      const access = await checkAccess(params.slug);
+      setHasAccess(access);
+      if (!access) {
+        setLoading(false);
+        return;
+      }
       try {
         const response = await fetch(`/api/submission/me?type=${params.slug}`);
         const data = await response.json();
-
-        console.log(data.formattedSubmissions);
         if (response.ok) {
-          setExistingSubmission(data.formattedSubmissions[0] || null); // Ambil pengajuan terbaru jika ada
+          setExistingSubmission(data.formattedSubmissions[0] || null);
         } else {
-          console.error(
-            "Kesalahan saat mengambil data pengajuan:",
-            data.message,
-          );
+          console.error("Kesalahan saat mengambil data pengajuan:", data.message);
         }
       } catch (error) {
         console.error("Kesalahan saat mengambil data pengajuan:", error);
       } finally {
         setLoading(false);
       }
-    };
+    }
+    init();
+  }, [params.slug]);
+  // console.log(params.slug);
+  // console.log(existingSubmission);
+  // console.log(session)
+  if (hasAccess === false) {
+    return <AccessDeniedToast countdownStart={3} redirectTo="/no-access" />;
+  }
 
-    fetchSubmission();
-  }, []);
-  console.log(params.slug);
-  console.log(existingSubmission);
+  // if (existingSubmission && existingSubmission.userId !== session?.user?.id) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen">
+  //       <div className="bg-white dark:bg-gray-800 p-8 rounded shadow-md text-center">
+  //         <h2 className="text-2xl font-bold text-red-600 mb-4">Akses Ditolak</h2>
+  //         <p className="text-gray-700 dark:text-gray-200">
+  //           Anda tidak memiliki akses pada pengajuan ini atau halaman yang Anda cari tidak ditemukan.
+  //         </p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+  // console.log(existingSubmission?.Type?.formats[0].is_newtitle_submission);
 
   if (loading) {
     return (

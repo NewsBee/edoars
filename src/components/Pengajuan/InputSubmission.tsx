@@ -30,6 +30,7 @@ const InputSubmission = ({ typeSlug }: { typeSlug: string }) => {
 
   // Ambil required files berdasarkan slug dari API
   console.log(typeSlug);
+  console.log("tes");
   useEffect(() => {
     const fetchRequiredFiles = async () => {
       try {

@@ -75,8 +75,10 @@ const MemutuskanHasil: React.FC<MemutuskanHasilProps> = ({
       v.lecturerId === Number(session?.user.id) && v.type === "Pembimbing",
   );
   console.log(submissionData)
+  console.log(isPembimbing)
 
 const isDisabled = submissionData.decision !== "MenungguKeputusan";
+console.log(isDisabled)
 
   return (
     <div className="p-4">
