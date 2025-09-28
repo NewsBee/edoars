@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import BimbinganChat from "@/components/Bimbingan/Chatting";
+import StudentGuidancePage from "@/components/Bimbingan/ParentBimbingan";
 
 export default function HalamanListPengajuan({
     params,
@@ -18,6 +19,8 @@ export default function HalamanListPengajuan({
       <div className="mx-auto max-w-7xl">
         <Breadcrumb pageName="Pengajuan" />
         <BimbinganChat/>
+        
+         {/* <StudentGuidancePage   /> */}
       </div>
     </>
   );

@@ -24,6 +24,7 @@ import DetailPenilaian from "./DetailPenilaian";
 import DisplayPenilaian from "./DisplayPenilaian";
 import MemutuskanHasil from "./MemutuskanHasil";
 import HasilKeputusanTitle from "./DetailHasilKeputusanTitle";
+import RevisiSection from "./Revisi";
 
 const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
   const [submissionData, setSubmissionData] = useState<any>(null);
@@ -123,16 +124,24 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
           { label: "Hasil Keputusan", icon: <FaChartBar /> },
           { label: "Revisi", icon: <FaUserAlt /> },
         ]
-      : [
-          { label: "Detail", icon: <FaInfoCircle /> },
-          { label: "Berkas", icon: <FaFileAlt /> },
-          { label: "Penilaian", icon: <FaChartLine /> },
-          { label: "Memutuskan Hasil", icon: <FaGavel /> },
-          { label: "Hasil Keputusan", icon: <FaCalendarAlt /> },
-          { label: "Revisi", icon: <FaUserAlt /> },
-          // { label: "Diskusi", icon: <FaUserAlt /> },
-          // { label: "Hasil", icon: <FaChartBar /> },
-        ];
+      : isAdmin
+        ? [
+            { label: "Detail", icon: <FaInfoCircle /> },
+            { label: "Berkas", icon: <FaFileAlt /> },
+            { label: "Ajukan Proses", icon: <FaCheckCircle /> }, // Tambahkan di sini juga
+            // { label: "Penilaian", icon: <FaChartLine /> },
+            // { label: "Memutuskan Hasil", icon: <FaGavel /> },
+            { label: "Hasil Keputusan", icon: <FaCalendarAlt /> },
+            { label: "Revisi", icon: <FaUserAlt /> },
+          ]
+        : [
+            { label: "Detail", icon: <FaInfoCircle /> },
+            { label: "Berkas", icon: <FaFileAlt /> },
+            { label: "Penilaian", icon: <FaChartLine /> },
+            { label: "Memutuskan Hasil", icon: <FaGavel /> },
+            { label: "Hasil Keputusan", icon: <FaCalendarAlt /> },
+            { label: "Revisi", icon: <FaUserAlt /> },
+          ];
 
   const openModal = (fileUrl: string) => {
     setSelectedFileUrl(fileUrl);
@@ -270,12 +279,13 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
                   session?.user.role !== "Mahasiswa") ||
                 (session?.user.role === "Dosen" &&
                   !hasUserSubmittedPenilaian &&
-                  (tab.label === "Memutuskan Hasil" ||
-                    tab.label === "Hasil Keputusan" ||
+                  (tab.label === "Hasil Keputusan" ||
                     tab.label === "Revisi")) ||
                 (session?.user.role === "Dosen" &&
                   tab.label === "Penilaian" &&
-                  !allVerificatorsApproved);
+                  !allVerificatorsApproved) ||
+                (tab.label === "Revisi" &&
+                  submissionData.decision !== "DiterimaDenganPerbaikan");
               return (
                 <div
                   key={index}
@@ -323,7 +333,7 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
         {/* Detail Proses Section */}
         {activeTab ===
           tabs.findIndex((tab) => tab.label === "Ajukan Proses") && (
-          <DetailProses submissionData={submissionData} />
+          <DetailProses submissionData={submissionData} isAdmin={isAdmin} />
         )}
         {activeTab === tabs.findIndex((tab) => tab.label === "Penilaian") &&
           (session?.user.role === "Dosen" ? (
@@ -366,7 +376,11 @@ const DetailPengajuan = ({ submissionId }: { submissionId: string }) => {
 
         {/* Revisi Section */}
         {activeTab === tabs.findIndex((tab) => tab.label === "Revisi") && (
-          <div>Revisi Content</div>
+          <RevisiSection
+            submissionId={submissionId}
+            role={session?.user.role ?? ""}
+            onChange={fetchSubmissionData} // supaya parent refresh setelah upload/approve
+          />
         )}
 
         {/* Diskusi Section */}
